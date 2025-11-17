@@ -1,0 +1,16 @@
+/* static/css/style.css */
+
+/***************** Base Theme***************/
+:root {
+    --color-primary: #4A90A4;
+    --color-accent:  #F39C12;
+    --color-bg:      #F5F5F5;
+    --color-text:    #333;
+}
+
+body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    margin: 0;
+    font-family: sans-serif;
+}
