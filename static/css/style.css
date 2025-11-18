@@ -176,7 +176,6 @@ small,
 .topbar,
 .topbar-auth {
     background: var(--color-surface);
-    border-bottom: 1px solid #e0e0e0;
     padding: 0.75rem 1rem;
     margin-bottom: 2rem;
 }
@@ -212,7 +211,7 @@ small,
     color: var(--color-link-hover);
 }
 
-/* LOGIN PAGE TOP BAR */
+/* AUTH PAGE TOP BAR */
 .topbar-auth .topbar-inner {
     justify-content: space-between;
 }
