@@ -6,7 +6,7 @@
     --color-surface: #FFFFFF;
     --color-text:    #333333;
     --color-muted:   #777777;
-    --color-link:    #2B7BBF;
+    --color-link:    #4A90A4;
     --color-link-hover: #205B8C;
 }
 
@@ -87,12 +87,21 @@ small,
     padding: 2rem 1.5rem;
     background: var(--color-surface);
     border-radius: 10px;
+    border: 1px solid #000000;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
-/* Title + description */
+/* TITLE + description */
 .auth-box h1 {
     margin-bottom: 0.5rem;
+}
+
+/* Hidden ORG Fields */
+.org-extra {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e0e0e0;
+    display: none;
 }
 
 .auth-box p.helper {
@@ -112,7 +121,10 @@ small,
     margin-bottom: 0.25rem;
 }
 
-.form-group input {
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="email"],
+.form-group input[type="tel"] {
     width: 100%;
     padding: 0.45rem 0.6rem;
     border-radius: 6px;
@@ -140,4 +152,86 @@ small,
 .btn-full {
     width: 100%;
     text-align: center;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+}
+
+.checkbox-row label {
+    display: inline;
+    margin: 0;
+}
+
+.checkbox-row input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+/*************** Top Bar ***************/
+
+.topbar,
+.topbar-auth {
+    background: var(--color-surface);
+    border-bottom: 1px solid #e0e0e0;
+    padding: 0.75rem 1rem;
+    margin-bottom: 2rem;
+}
+
+.topbar-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* LOGO */
+.topbar-logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text);
+    background: #ccc;
+    border: 2px solid #ccc; 
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+}
+
+/* NAVIGATION */
+.topbar-nav a {
+    margin-left: 1rem;
+    text-decoration: none;
+    color: var(--color-link);
+    font-weight: 500;
+}
+
+.topbar-nav a:hover {
+    color: var(--color-link-hover);
+}
+
+/* LOGIN PAGE TOP BAR */
+.topbar-auth .topbar-inner {
+    justify-content: space-between;
+}
+
+/* LINE UNDER THE TOP BAR */
+.topbar::after,
+.topbar-auth::after {
+    content: "";
+    display: block;
+    height: 1px;
+    background: #d0d0d0;
+    width: 100%;
+    margin-top: 0.5rem;
+        background: linear-gradient(
+            to right,
+            rgba(0, 0, 0, 0) 0%,
+            rgba(0, 0, 0, 0.1) 10%,
+            rgba(0, 0, 0, 0.22) 50%,
+            rgba(0, 0, 0, 0.1) 90%,
+            rgba(0, 0, 0, 0) 100%
+        );
 }

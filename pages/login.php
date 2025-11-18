@@ -1,15 +1,12 @@
 <?php
 // pages/login.php
 $pageTitle = "Neighborly - Login";
+$authPage  = true;
 
 ob_start();
 ?>
-
+<h1 style="text-align:center;">Log in to Neighborly</h1>
 <div class="auth-box">
-    <h1>Log in to Neighborly</h1>
-    <p class="helper">
-        Enter your username and password to access your volunteer or organizer dashboard.
-    </p>
 
     <form method="post" action="login.php">
         <div class="form-group">
@@ -37,11 +34,12 @@ ob_start();
         <button type="submit" class="btn btn-full">Log in</button>
     </form>
 
-    <p class="helper" style="margin-top: 1rem;">
-        Don’t have an account yet?
-        <a href="register.php">Register here</a>.
-    </p>
 </div>
+
+<p class="helper" style="text-align:center; margin-top: 1rem;">
+    Not a registered user?
+    <a href="register.php">Click here!</a>
+</p>
 
 <?php
 $content = ob_get_clean();

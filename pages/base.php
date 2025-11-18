@@ -2,6 +2,7 @@
 // pages/base.php
 $pageTitle = $pageTitle ?? "Neighborly";
 $content   = $content ?? "";
+$authPage  = $authPage ?? false;
 ?>
 
 <!DOCTYPE html>
@@ -14,10 +15,24 @@ $content   = $content ?? "";
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
+    <!--TOP BAR -->
+    <header class="<?php echo $authPage ? 'topbar-auth' : 'topbar'; ?>">
+        <div class="topbar-inner">
+            <div class="topbar-logo">Neighborly</div>
+
+            <?php if (!$authPage): ?>
+                <nav class="topbar-nav">
+                    <!-- Navigation to be added -->
+                </nav>
+            <?php endif; ?>
+        </div>
+    </header>
+
 <body>
     <main class="page">
         <?php echo $content; ?>
     </main>
+    <script src="/static/js/main.js"></script>
 
 </body>
 </html>
