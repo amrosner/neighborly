@@ -6,12 +6,13 @@
     --color-surface: #FFFFFF;
     --color-text:    #333333;
     --color-muted:   #777777;
-    --colot-link:    #2B7BBF;
+    --color-link:    #2B7BBF;
     --color-link-hover: #205B8C;
 }
 
 *, *::before, *::after {
     box-sizing: border-box;
+}
 
 
 body {
