@@ -15,6 +15,9 @@ $authPage  = $authPage ?? false;
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
+<body>
+
+
     <!--TOP BAR -->
     <header class="<?php echo $authPage ? 'topbar-auth' : 'topbar'; ?>">
         <div class="topbar-inner">
@@ -28,7 +31,7 @@ $authPage  = $authPage ?? false;
         </div>
     </header>
 
-<body>
+
     <main class="page">
         <?php echo $content; ?>
     </main>
