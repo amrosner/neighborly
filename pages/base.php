@@ -1,5 +1,5 @@
 <?php
-// base.php
+// pages/base.php
 $pageTitle = $pageTitle ?? "Neighborly";
 $content   = $content ?? "";
 ?>
@@ -15,8 +15,9 @@ $content   = $content ?? "";
 </head>
 
 <body>
-
-    <?php echo $content; ?>
+    <main class="page">
+        <?php echo $content; ?>
+    </main>
 
 </body>
 </html>
