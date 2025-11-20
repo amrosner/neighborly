@@ -234,3 +234,162 @@ small,
             rgba(0, 0, 0, 0) 100%
         );
 }
+
+/*************** Admin Panel ***************/
+
+.admin-section {
+    margin-bottom: 3rem;
+}
+
+.admin-section h2 {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #d0d0d0;
+}
+
+/* Admin Tables */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.admin-table thead {
+    background: #f8f8f8;
+}
+
+.admin-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.admin-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.9rem;
+}
+
+.admin-table tbody tr:hover {
+    background: #fafafa;
+}
+
+.admin-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Empty state */
+.admin-table .empty-row td {
+    text-align: center;
+    color: var(--color-muted);
+    padding: 2rem;
+    font-style: italic;
+}
+
+/* Action buttons container */
+.admin-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Admin buttons */
+.btn-approve {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-approve:hover {
+    background: #218838;
+}
+
+.btn-reject {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-reject:hover {
+    background: #c82333;
+}
+
+.btn-view {
+    background: var(--color-link);
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-view:hover {
+    background: var(--color-link-hover);
+}
+
+.btn-delete {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-delete:hover {
+    background: #5a6268;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-completed {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.approved-yes {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.approved-no {
+    color: #dc3545;
+    font-weight: 600;
+}
