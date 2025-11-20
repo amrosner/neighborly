@@ -27,6 +27,9 @@ ob_start();
             </tr>
         </thead>
         <tbody>
+            <tr class="empty-row">
+                <td colspan="6">No pending events to approve</td>
+            </tr>
         </tbody>
     </table>
 </div>
@@ -46,6 +49,9 @@ ob_start();
             </tr>
         </thead>
         <tbody>
+            <tr class="empty-row">
+                <td colspan="6">No users to display</td>
+            </tr>
         </tbody>
     </table>
 </div>
@@ -66,6 +72,9 @@ ob_start();
             </tr>
         </thead>
         <tbody>
+            <tr class="empty-row">
+                <td colspan="7">No events to display</td>
+            </tr>
         </tbody>
     </table>
 </div>
