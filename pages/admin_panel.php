@@ -5,7 +5,17 @@ session_start();
 // Include database configuration
 require_once '../config/database.php';
 
-// TODO: Add actual authentication check here
+// Authentication check - redirect if not logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
+// Check if user is an admin
+if ($_SESSION['role'] !== 'admin') {
+    header("Location: login.php");
+    exit;
+}
 
 // Fetch pending events (not approved)
 $stmt = $pdo->prepare("

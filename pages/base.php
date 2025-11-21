@@ -4,14 +4,6 @@ $pageTitle = $pageTitle ?? "Neighborly";
 $content   = $content ?? "";
 $authPage  = $authPage ?? false;
 
-/*
-//FOR TESTING ONLY!!!!
-// TEMPORARY - For testing navigation only - REMOVE THIS LATER!
-$_SESSION['user_id'] = 1;
-$_SESSION['role'] = 'volunteer'; // Try: 'volunteer', 'organizer', or 'admin'
-*/
-
-
 // Check if user is logged in
 $isLoggedIn = isset($_SESSION['user_id']);
 $userRole = $_SESSION['role'] ?? null;
