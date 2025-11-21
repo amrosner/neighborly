@@ -200,15 +200,23 @@ small,
 }
 
 /* NAVIGATION */
+.topbar-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
 .topbar-nav a {
-    margin-left: 1rem;
     text-decoration: none;
-    color: var(--color-link);
+    color: var(--color-text);
     font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.2s;
 }
 
 .topbar-nav a:hover {
-    color: var(--color-link-hover);
+    color: var(--color-link);
+    text-decoration: none;
 }
 
 /* AUTH PAGE TOP BAR */

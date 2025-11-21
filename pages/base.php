@@ -3,6 +3,18 @@
 $pageTitle = $pageTitle ?? "Neighborly";
 $content   = $content ?? "";
 $authPage  = $authPage ?? false;
+
+/*
+//FOR TESTING ONLY!!!!
+// TEMPORARY - For testing navigation only - REMOVE THIS LATER!
+$_SESSION['user_id'] = 1;
+$_SESSION['role'] = 'volunteer'; // Try: 'volunteer', 'organizer', or 'admin'
+*/
+
+
+// Check if user is logged in
+$isLoggedIn = isset($_SESSION['user_id']);
+$userRole = $_SESSION['role'] ?? null;
 ?>
 
 <!DOCTYPE html>
@@ -23,9 +35,19 @@ $authPage  = $authPage ?? false;
         <div class="topbar-inner">
             <div class="topbar-logo">Neighborly</div>
 
-            <?php if (!$authPage): ?>
+            <?php if (!$authPage && $isLoggedIn): ?>
                 <nav class="topbar-nav">
-                    <!-- Navigation to be added -->
+                    <a href="/pages/timeline.php">Timeline</a>
+                    
+                    <?php if ($userRole === 'volunteer'): ?>
+                        <a href="/pages/volunteer_profile.php">Profile</a>
+                    <?php elseif ($userRole === 'organizer'): ?>
+                        <a href="/pages/organizer_profile.php">Organization</a>
+                    <?php elseif ($userRole === 'admin'): ?>
+                        <a href="/pages/admin_panel.php">Admin Panel</a>
+                    <?php endif; ?>
+                    
+                    <a href="/pages/logout.php">Sign Out</a>
                 </nav>
             <?php endif; ?>
         </div>
