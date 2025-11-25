@@ -5,6 +5,9 @@ session_start();
 // Include database configuration
 require_once '../config/database.php';
 
+// Connect to database
+$pdo = connect_to_database();
+
 // Authentication check - redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");

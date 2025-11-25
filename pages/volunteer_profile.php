@@ -5,14 +5,15 @@ session_start();
 // Include database configuration
 require_once '../config/database.php';
 
+// Connect to database
+$pdo = connect_to_database();
+
 // Include locations from config file
 $locationsPath = __DIR__ . '/../config/locations.php';
-if (file_exists($locationsPath)) {
-    $locations = require $locationsPath;
-} else {
-    // Fallback if file not found
-    $locations = ['San Juan', 'Bayamón', 'Carolina', 'Ponce', 'Caguas'];
+if (!file_exists($locationsPath)) {
+    die("Error: Locations file not found at: " . $locationsPath);
 }
+$locations = require $locationsPath;
 
 // Authentication check - redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
