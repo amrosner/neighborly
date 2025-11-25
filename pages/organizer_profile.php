@@ -1,6 +1,5 @@
 <?php
 // pages/organizer_profile.php
-session_start();
 
 // Include database configuration
 require_once '../config/database.php';
