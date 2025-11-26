@@ -1,5 +1,6 @@
 <?php
 // pages/organizer_profile.php
+session_start();
 
 // Include database configuration
 require_once '../config/database.php';
@@ -28,6 +29,102 @@ if ($_SESSION['role'] !== 'organizer') {
 
 // Get user ID from session
 $userId = $_SESSION['user_id'];
+
+// Handle "End campaign" action
+if (isset($_GET['end_event']) && is_numeric($_GET['end_event'])) {
+    $eventId = (int)$_GET['end_event'];
+    
+    try {
+        // Update event status to cancelled
+        $stmt = $pdo->prepare("
+            UPDATE events 
+            SET status = 'cancelled' 
+            WHERE event_id = ? AND organizer_id = ?
+        ");
+        $stmt->execute([$eventId, $userId]);
+        
+        header("Location: organizer_profile.php?ended=1");
+        exit;
+    } catch (PDOException $e) {
+        $errors[] = "Error ending campaign: " . $e->getMessage();
+    }
+}
+
+// Handle form submission (Save button)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_profile'])) {
+    $errors = [];
+    
+    // Get form data
+    $email = trim($_POST['email'] ?? '');
+    $orgName = trim($_POST['org_name'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $location = trim($_POST['location'] ?? '');
+    $oldPassword = $_POST['old_password'] ?? '';
+    $newPassword = $_POST['new_password'] ?? '';
+    $confirmPassword = $_POST['confirm_password'] ?? '';
+    
+    // Validate password change if provided
+    if (!empty($newPassword)) {
+        if (empty($oldPassword)) {
+            $errors[] = "Old password is required to set a new password.";
+        } else {
+            // Verify old password
+            $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE user_id = ?");
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch();
+            
+            if (!password_verify($oldPassword, $user['password_hash'])) {
+                $errors[] = "Old password is incorrect.";
+            }
+        }
+        
+        if ($newPassword !== $confirmPassword) {
+            $errors[] = "New passwords do not match.";
+        }
+        
+        if (strlen($newPassword) < 6) {
+            $errors[] = "New password must be at least 6 characters.";
+        }
+    }
+    
+    // If no errors, update database
+    if (empty($errors)) {
+        try {
+            // Update users table
+            if (!empty($newPassword)) {
+                $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+                $stmt = $pdo->prepare("
+                    UPDATE users 
+                    SET email = ?, phone = ?, location = ?, password_hash = ?
+                    WHERE user_id = ?
+                ");
+                $stmt->execute([$email, $phone, $location, $passwordHash, $userId]);
+            } else {
+                $stmt = $pdo->prepare("
+                    UPDATE users 
+                    SET email = ?, phone = ?, location = ?
+                    WHERE user_id = ?
+                ");
+                $stmt->execute([$email, $phone, $location, $userId]);
+            }
+            
+            // Update organizers table
+            $stmt = $pdo->prepare("
+                UPDATE organizers 
+                SET org_name = ?
+                WHERE user_id = ?
+            ");
+            $stmt->execute([$orgName, $userId]);
+            
+            // Redirect to view mode with success
+            header("Location: organizer_profile.php?success=1");
+            exit;
+            
+        } catch (PDOException $e) {
+            $errors[] = "Error updating profile: " . $e->getMessage();
+        }
+    }
+}
 
 // Check if we're in edit mode
 $editMode = isset($_GET['edit']) && $_GET['edit'] === 'true';
@@ -73,6 +170,26 @@ ob_start();
     <div class="profile-container">
         <h1>Organization</h1>
 
+        <?php if (isset($_GET['success'])): ?>
+            <div style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                Profile updated successfully!
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['ended'])): ?>
+            <div style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                Campaign ended successfully.
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($errors)): ?>
+            <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                <?php foreach ($errors as $error): ?>
+                    <p style="margin: 0.25rem 0;"><?php echo htmlspecialchars($error); ?></p>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
         <div class="profile-section">
             <h2>Organization information</h2>
             
@@ -116,7 +233,10 @@ ob_start();
                 <?php foreach ($activeEvents as $index => $event): ?>
                     <div class="event-item">
                         <p><strong><?php echo ($index + 1) . '. ' . htmlspecialchars($event['title']); ?></strong></p>
-                        <p><a href="#">End campaign.</a></p>
+                        <p><a href="organizer_profile.php?end_event=<?php echo $event['event_id']; ?>"
+                              onclick="return confirm('Are you sure you want to end this campaign?');">
+                              End campaign.
+                           </a></p>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -169,16 +289,6 @@ ob_start();
             </div>
 
             <div class="form-group">
-                <label for="first_name">First name</label>
-                <input type="text" id="first_name" name="first_name">
-            </div>
-
-            <div class="form-group">
-                <label for="last_name">Last</label>
-                <input type="text" id="last_name" name="last_name">
-            </div>
-
-            <div class="form-group">
                 <label>Password</label>
                 <input type="password" name="old_password">
             </div>
@@ -214,7 +324,7 @@ ob_start();
                 <a href="organizer_profile.php">
                     <button type="button" class="btn-cancel">Cancel</button>
                 </a>
-                <button type="submit" class="btn-save">Save</button>
+                <button type="submit" name="save_profile" class="btn-save">Save</button>
             </div>
 
         </form>

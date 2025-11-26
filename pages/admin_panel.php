@@ -1,11 +1,79 @@
 <?php
 // pages/admin_panel.php
+session_start();
 
 // Include database configuration
 require_once '../config/database.php';
 
 // Connect to database
 $pdo = connect_to_database();
+
+// Handle admin actions
+$successMessage = '';
+$errorMessage = '';
+
+// Approve event
+if (isset($_POST['approve_event']) && is_numeric($_POST['event_id'])) {
+    $eventId = (int)$_POST['event_id'];
+    try {
+        $stmt = $pdo->prepare("UPDATE events SET is_approved = 1 WHERE event_id = ?");
+        $stmt->execute([$eventId]);
+        $successMessage = "Event approved successfully.";
+    } catch (PDOException $e) {
+        $errorMessage = "Error approving event: " . $e->getMessage();
+    }
+}
+
+// Reject event
+if (isset($_POST['reject_event']) && is_numeric($_POST['event_id'])) {
+    $eventId = (int)$_POST['event_id'];
+    try {
+        $stmt = $pdo->prepare("UPDATE events SET is_approved = 0, status = 'cancelled' WHERE event_id = ?");
+        $stmt->execute([$eventId]);
+        $successMessage = "Event rejected successfully.";
+    } catch (PDOException $e) {
+        $errorMessage = "Error rejecting event: " . $e->getMessage();
+    }
+}
+
+// Delete event
+if (isset($_POST['delete_event']) && is_numeric($_POST['event_id'])) {
+    $eventId = (int)$_POST['event_id'];
+    try {
+        $stmt = $pdo->prepare("DELETE FROM events WHERE event_id = ?");
+        $stmt->execute([$eventId]);
+        $successMessage = "Event deleted successfully.";
+    } catch (PDOException $e) {
+        $errorMessage = "Error deleting event: " . $e->getMessage();
+    }
+}
+
+// Delete user
+if (isset($_POST['delete_user']) && is_numeric($_POST['user_id'])) {
+    $userIdToDelete = (int)$_POST['user_id'];
+    
+    // Prevent deleting yourself
+    if ($userIdToDelete === $_SESSION['user_id']) {
+        $errorMessage = "You cannot delete yourself.";
+    } else {
+        try {
+            // Check if user is an admin
+            $stmt = $pdo->prepare("SELECT role FROM users WHERE user_id = ?");
+            $stmt->execute([$userIdToDelete]);
+            $userToDelete = $stmt->fetch();
+            
+            if ($userToDelete['role'] === 'admin') {
+                $errorMessage = "Cannot delete admin users.";
+            } else {
+                $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
+                $stmt->execute([$userIdToDelete]);
+                $successMessage = "User deleted successfully.";
+            }
+        } catch (PDOException $e) {
+            $errorMessage = "Error deleting user: " . $e->getMessage();
+        }
+    }
+}
 
 // Authentication check - redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
@@ -59,6 +127,18 @@ ob_start();
 
 <h1>Admin Panel</h1>
 
+<?php if (!empty($successMessage)): ?>
+    <div style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+        <?php echo htmlspecialchars($successMessage); ?>
+    </div>
+<?php endif; ?>
+
+<?php if (!empty($errorMessage)): ?>
+    <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+        <?php echo htmlspecialchars($errorMessage); ?>
+    </div>
+<?php endif; ?>
+
 <div class="admin-section">
     <h2>Pending Event Approvals</h2>
     
@@ -88,8 +168,16 @@ ob_start();
                         <td><?php echo htmlspecialchars($event['location']); ?></td>
                         <td>
                             <div class="admin-actions">
-                                <button class="btn-approve">Approve</button>
-                                <button class="btn-reject">Reject</button>
+                                <form method="post" style="display: inline;">
+                                    <input type="hidden" name="event_id" value="<?php echo $event['event_id']; ?>">
+                                    <button type="submit" name="approve_event" class="btn-approve" 
+                                            onclick="return confirm('Approve this event?');">Approve</button>
+                                </form>
+                                <form method="post" style="display: inline;">
+                                    <input type="hidden" name="event_id" value="<?php echo $event['event_id']; ?>">
+                                    <button type="submit" name="reject_event" class="btn-reject"
+                                            onclick="return confirm('Reject this event?');">Reject</button>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -128,8 +216,15 @@ ob_start();
                         <td><?php echo htmlspecialchars($user['location']); ?></td>
                         <td>
                             <div class="admin-actions">
-                                <button class="btn-view">View</button>
-                                <button class="btn-delete">Delete</button>
+                                <?php if ($user['role'] !== 'admin'): ?>
+                                    <form method="post" style="display: inline;">
+                                        <input type="hidden" name="user_id" value="<?php echo $user['user_id']; ?>">
+                                        <button type="submit" name="delete_user" class="btn-delete"
+                                                onclick="return confirm('Are you sure you want to delete this user?');">Delete</button>
+                                    </form>
+                                <?php else: ?>
+                                    <span style="color: #999; font-size: 0.85rem;">Admin</span>
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
@@ -179,10 +274,22 @@ ob_start();
                         <td>
                             <div class="admin-actions">
                                 <?php if (!$event['is_approved']): ?>
-                                    <button class="btn-approve">Approve</button>
-                                    <button class="btn-reject">Reject</button>
+                                    <form method="post" style="display: inline;">
+                                        <input type="hidden" name="event_id" value="<?php echo $event['event_id']; ?>">
+                                        <button type="submit" name="approve_event" class="btn-approve"
+                                                onclick="return confirm('Approve this event?');">Approve</button>
+                                    </form>
+                                    <form method="post" style="display: inline;">
+                                        <input type="hidden" name="event_id" value="<?php echo $event['event_id']; ?>">
+                                        <button type="submit" name="reject_event" class="btn-reject"
+                                                onclick="return confirm('Reject this event?');">Reject</button>
+                                    </form>
                                 <?php endif; ?>
-                                <button class="btn-delete">Delete</button>
+                                <form method="post" style="display: inline;">
+                                    <input type="hidden" name="event_id" value="<?php echo $event['event_id']; ?>">
+                                    <button type="submit" name="delete_event" class="btn-delete"
+                                            onclick="return confirm('Are you sure you want to delete this event?');">Delete</button>
+                                </form>
                             </div>
                         </td>
                     </tr>

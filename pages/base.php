@@ -1,5 +1,6 @@
 <?php
 // pages/base.php
+
 $pageTitle = $pageTitle ?? "Neighborly";
 $content   = $content ?? "";
 $authPage  = $authPage ?? false;
