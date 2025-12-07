@@ -607,3 +607,144 @@ small,
 .btn-save:hover {
     background: var(--color-link-hover);
 }
+
+
+
+/*************** Timeline Cards ***************/
+
+.timeline {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.timeline-card {
+    background: var(--color-surface);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.timeline-card-image img {
+    width: 100%;
+    display: block;
+    max-height: 260px;
+    object-fit: cover;
+}
+
+.timeline-card-body {
+    padding: 1rem 1.25rem 1.25rem;
+}
+
+.timeline-card-meta {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    margin-bottom: 0.4rem;
+}
+
+.timeline-date {
+    font-weight: 600;
+}
+
+.timeline-time,
+.timeline-city {
+    margin-left: 0.5rem;
+}
+
+.timeline-card-title {
+    font-size: 1.2rem;
+    margin: 0 0 0.4rem;
+}
+
+.timeline-card-description {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/*ACTIONS */
+
+/* Wrapper for actions row */
+.timeline-card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 1rem;
+}
+
+/* Left side: More details */
+.actions-left {
+    display: flex;
+    align-items: center;
+}
+
+/* Right side: Volunteer button + spots warning */
+.actions-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+}
+
+/* Warning message under volunteer button */
+.spots-warning {
+    font-size: 0.85rem;
+    color: #dc3545;
+    font-weight: 500;
+    margin-top: 0.25rem;
+}
+
+/* MORE DETAILS BUTTON */
+.btn-outline {
+    background: transparent;
+    color: var(--color-link);
+    border: 1px solid var(--color-link);
+}
+
+.btn-outline:hover {
+    background: var(--color-link);
+    color: #fff;
+}
+
+/* Volunteer Button Active State */
+.volunteer-btn.volunteered {
+    background: #28a745;
+    cursor: default;
+}
+
+/* Loading Text */
+.timeline-loading {
+    text-align: center;
+    margin: 1.5rem 0 2rem;
+    display: none;
+}
+
+/* Show More */
+.timeline-show-more-wrap {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+/* Organization Badge */
+.timeline-card-image {
+    position: relative;
+}
+
+.timeline-org-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    backdrop-filter: blur(3px);
+    transition: background 0.2s;
+}
+
+.timeline-org-badge:hover {
+    background: rgba(0,0,0,0.85);
+}
