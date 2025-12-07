@@ -366,7 +366,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error:', error);
                 
-                // Revert button to original state on error
                 originalBtn.disabled = false;
                 originalBtn.textContent = 'Volunteer';
                 originalBtn.style.backgroundColor = '#007bff';
