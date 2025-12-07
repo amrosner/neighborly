@@ -30,6 +30,9 @@ if ($_SESSION['role'] !== 'volunteer') {
 // Get user ID from session
 $userId = $_SESSION['user_id'];
 
+// Initialize errors array
+$errors = [];
+
 // Handle "Stop participating" action
 if (isset($_GET['stop_event']) && is_numeric($_GET['stop_event'])) {
     $eventId = (int)$_GET['stop_event'];
@@ -39,9 +42,12 @@ if (isset($_GET['stop_event']) && is_numeric($_GET['stop_event'])) {
         $stmt = $pdo->prepare("
             UPDATE event_attendees 
             SET status = 'cancelled' 
-            WHERE event_id = ? AND volunteer_id = ?
+            WHERE event_id = :event_id AND volunteer_id = :volunteer_id
         ");
-        $stmt->execute([$eventId, $userId]);
+        $stmt->execute([
+            'event_id' => $eventId,
+            'volunteer_id' => $userId
+        ]);
         
         header("Location: volunteer_profile.php?stopped=1");
         exit;
@@ -70,13 +76,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_profile'])) {
         if (empty($oldPassword)) {
             $errors[] = "Old password is required to set a new password.";
         } else {
-            // Verify old password
-            $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE user_id = ?");
-            $stmt->execute([$userId]);
+            // Verify old password - FIXED: Use === instead of !hash() ===
+            $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE user_id = :user_id");
+            $stmt->execute(['user_id' => $userId]);
             $user = $stmt->fetch();
             
-            if (!password_verify($oldPassword, $user['password_hash'])) {
+            if ($user && hash('sha256', $oldPassword) !== $user['password_hash']) {
                 $errors[] = "Old password is incorrect.";
+            } elseif (!$user) {
+                $errors[] = "User not found.";
             }
         }
         
@@ -94,38 +102,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_profile'])) {
         try {
             // Update users table
             if (!empty($newPassword)) {
-                $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+                $passwordHash = hash('sha256', $newPassword);
                 $stmt = $pdo->prepare("
                     UPDATE users 
-                    SET email = ?, phone = ?, location = ?, password_hash = ?
-                    WHERE user_id = ?
+                    SET email = :email, phone = :phone, location = :location, password_hash = :password_hash
+                    WHERE user_id = :user_id
                 ");
-                $stmt->execute([$email, $phone, $location, $passwordHash, $userId]);
+                $stmt->execute([
+                    'email' => $email,
+                    'phone' => $phone,
+                    'location' => $location,
+                    'password_hash' => $passwordHash,
+                    'user_id' => $userId
+                ]);
             } else {
                 $stmt = $pdo->prepare("
                     UPDATE users 
-                    SET email = ?, phone = ?, location = ?
-                    WHERE user_id = ?
+                    SET email = :email, phone = :phone, location = :location
+                    WHERE user_id = :user_id
                 ");
-                $stmt->execute([$email, $phone, $location, $userId]);
+                $stmt->execute([
+                    'email' => $email,
+                    'phone' => $phone,
+                    'location' => $location,
+                    'user_id' => $userId
+                ]);
             }
             
             // Update volunteers table
             $stmt = $pdo->prepare("
                 UPDATE volunteers 
-                SET first_name = ?, last_name = ?
-                WHERE user_id = ?
+                SET first_name = :first_name, last_name = :last_name
+                WHERE user_id = :user_id
             ");
-            $stmt->execute([$firstName, $lastName, $userId]);
+            $stmt->execute([
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'user_id' => $userId
+            ]);
             
             // Update skills - delete old ones and insert new ones
-            $stmt = $pdo->prepare("DELETE FROM user_skills WHERE user_id = ?");
-            $stmt->execute([$userId]);
+            $stmt = $pdo->prepare("DELETE FROM user_skills WHERE user_id = :user_id");
+            $stmt->execute(['user_id' => $userId]);
             
             if (!empty($skills)) {
-                $stmt = $pdo->prepare("INSERT INTO user_skills (user_id, skill_id) VALUES (?, ?)");
+                $stmt = $pdo->prepare("INSERT INTO user_skills (user_id, skill_id) VALUES (:user_id, :skill_id)");
                 foreach ($skills as $skillId) {
-                    $stmt->execute([$userId, $skillId]);
+                    $stmt->execute([
+                        'user_id' => $userId,
+                        'skill_id' => $skillId
+                    ]);
                 }
             }
             
@@ -147,9 +173,9 @@ $stmt = $pdo->prepare("
     SELECT u.username, u.email, u.phone, u.location, v.first_name, v.last_name, v.bio
     FROM users u
     JOIN volunteers v ON u.user_id = v.user_id
-    WHERE u.user_id = ?
+    WHERE u.user_id = :user_id
 ");
-$stmt->execute([$userId]);
+$stmt->execute(['user_id' => $userId]);
 $volunteer = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Fetch volunteer skills
@@ -157,9 +183,9 @@ $stmt = $pdo->prepare("
     SELECT s.skill_id, s.skill_name
     FROM user_skills us
     JOIN skills s ON us.skill_id = s.skill_id
-    WHERE us.user_id = ?
+    WHERE us.user_id = :user_id
 ");
-$stmt->execute([$userId]);
+$stmt->execute(['user_id' => $userId]);
 $volunteerSkills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch all available skills for the edit form
@@ -167,28 +193,34 @@ $stmt = $pdo->prepare("SELECT skill_id, skill_name FROM skills ORDER BY skill_na
 $stmt->execute();
 $allSkills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch active events volunteer is participating in
+// Fetch active events volunteer is participating in (status = 'registered')
 $stmt = $pdo->prepare("
     SELECT e.event_id, e.title, ea.status
     FROM event_attendees ea
     JOIN events e ON ea.event_id = e.event_id
-    WHERE ea.volunteer_id = ? AND e.status = 'active' AND ea.status = 'registered'
+    WHERE ea.volunteer_id = :volunteer_id 
+    AND e.status = 'active' 
+    AND ea.status = 'registered'
     ORDER BY e.start_date
 ");
-$stmt->execute([$userId]);
+$stmt->execute(['volunteer_id' => $userId]);
 $activeEvents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch past events (completed or cancelled)
 $stmt = $pdo->prepare("
-    SELECT e.event_id, e.title, e.status
+    SELECT e.event_id, e.title, e.status AS event_status, ea.status AS attendee_status
     FROM event_attendees ea
     JOIN events e ON ea.event_id = e.event_id
-    WHERE ea.volunteer_id = ? 
-    AND (e.status = 'completed' OR e.status = 'cancelled' OR ea.status = 'cancelled')
+    WHERE ea.volunteer_id = :volunteer_id
+    AND (
+        e.status = 'completed' 
+        OR e.status = 'cancelled' 
+        OR ea.status = 'cancelled'
+    )
     AND NOT (e.status = 'active' AND ea.status = 'registered')
     ORDER BY e.start_date DESC
 ");
-$stmt->execute([$userId]);
+$stmt->execute(['volunteer_id' => $userId]);
 $pastEvents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Note: $locations array is defined at the top of the file
@@ -290,11 +322,11 @@ ob_start();
                     <div class="event-item">
                         <p><strong><?php echo ($index + 1) . '. ' . htmlspecialchars($event['title']); ?></strong></p>
                         <p>
-                            <?php if ($event['status'] === 'completed'): ?>
+                            <?php if ($event['event_status'] === 'completed' && $event['attendee_status'] === 'registered'): ?>
                                 Event Completed
-                            <?php elseif ($event['status'] === 'cancelled'): ?>
+                            <?php elseif ($event['event_status'] === 'cancelled'): ?>
                                 Event Cancelled
-                            <?php else: ?>
+                            <?php elseif ($event['attendee_status'] === 'cancelled'): ?>
                                 You stopped participating
                             <?php endif; ?>
                         </p>

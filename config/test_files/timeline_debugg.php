@@ -3,18 +3,27 @@
 session_start();
 require_once '../config/database.php';
 
+// Enable full error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 $pageTitle = "Neighborly - Opportunities Timeline";
 $authPage  = false;
 
 $placeholderImage = "/static/img/placeholder.jpeg";
 
-// Handle volunteer signup via GET parameter
+// Handle volunteer signup via GET parameter (more reliable)
 $signup_message = "";
 $signup_error = "";
+
+error_log("=== TIMELINE DEBUG ===");
+error_log("REQUEST METHOD: " . $_SERVER['REQUEST_METHOD']);
+error_log("QUERY STRING: " . ($_SERVER['QUERY_STRING'] ?? 'none'));
 
 // Check for signup via GET parameter
 if (isset($_GET['signup_event'])) {
     $event_id = (int)$_GET['signup_event'];
+    error_log("GET signup_event detected: $event_id");
     
     if (!isset($_SESSION['user_id'])) {
         $signup_error = "Please log in to volunteer for events.";
@@ -37,6 +46,11 @@ if (isset($_GET['signup_event'])) {
                 $signup_error = "Event not found or not active.";
             } else {
                 // Try to insert
+                echo "WE HIT";
+                echo "WE HIT";
+                echo "WE HIT";
+                echo "WE HIT";
+                echo "WE HIT";
                 try {
                     $insert_stmt = $pdo->prepare("
                         INSERT INTO event_attendees (event_id, volunteer_id, signup_timestamp, status)
@@ -67,7 +81,8 @@ if (isset($_GET['signup_event'])) {
                 }
             }
         } catch (PDOException $e) {
-            $signup_error = "An error occurred. Please try again.";
+            error_log("Database error: " . $e->getMessage());
+            $signup_error = "Database error: " . $e->getMessage();
         }
     }
     
@@ -157,6 +172,7 @@ try {
         ];
     }
 } catch (PDOException $e) {
+    error_log("Main timeline query error: " . $e->getMessage());
     $opportunities = [];
 }
 
@@ -166,6 +182,18 @@ ob_start();
 <p class="helper">
     Discover volunteer opportunities in your community.
 </p>
+
+<!-- DEBUG INFO -->
+<div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
+    <h4 style="margin-top: 0; color: #6c757d;">Debug Information</h4>
+    <div style="font-family: monospace; font-size: 0.9em;">
+        <div><strong>Request Method:</strong> <?php echo htmlspecialchars($_SERVER['REQUEST_METHOD']); ?></div>
+        <div><strong>Session User ID:</strong> <?php echo htmlspecialchars($_SESSION['user_id'] ?? 'Not set'); ?></div>
+        <div><strong>Session Role:</strong> <?php echo htmlspecialchars($_SESSION['role'] ?? 'Not set'); ?></div>
+        <div><strong>Signup Message:</strong> <?php echo htmlspecialchars($signup_message ?: 'None'); ?></div>
+        <div><strong>Signup Error:</strong> <?php echo htmlspecialchars($signup_error ?: 'None'); ?></div>
+    </div>
+</div>
 
 <?php if (!empty($signup_message)): ?>
     <div class="success-message" style="background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
@@ -236,6 +264,7 @@ ob_start();
                                     Event Full
                                 </button>
                             <?php else: ?>
+                                <!-- SIMPLE LINK APPROACH - Will definitely work -->
                                 <a href="timeline.php?signup_event=<?= (int)$opp["id"] ?>" 
                                    class="btn volunteer-btn"
                                    onclick="return confirm('Are you sure you want to sign up for \'<?= addslashes($opp["title"]) ?>\'?')">
@@ -256,6 +285,32 @@ ob_start();
     <?php endif; ?>
 </div>
 
+<!-- TEST LINKS - Always visible -->
+<div style="border: 3px solid #007bff; padding: 20px; margin: 30px 0; background: #e7f3ff; border-radius: 8px;">
+    <h3 style="color: #007bff; margin-top: 0;">Test Links (Should Work)</h3>
+    <p>Click these links to test signup functionality:</p>
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+        <?php if (!empty($opportunities)): ?>
+            <?php for($i = 0; $i < min(3, count($opportunities)); $i++): ?>
+                <a href="timeline.php?signup_event=<?= $opportunities[$i]["id"] ?>" 
+                   class="btn" 
+                   style="background-color: <?= ['#007bff', '#28a745', '#fd7e14'][$i] ?>; color: white;">
+                    Test Signup: <?= htmlspecialchars($opportunities[$i]["title"]) ?>
+                </a>
+            <?php endfor; ?>
+        <?php endif; ?>
+        
+        <a href="timeline.php?signup_event=999" class="btn" style="background-color: #dc3545; color: white;">
+            Test Invalid Event
+        </a>
+    </div>
+    
+    <p style="font-size: 0.9em; color: #6c757d;">
+        <strong>Note:</strong> These links use GET parameters instead of forms. After clicking, you'll be redirected back here.
+    </p>
+</div>
+
 <p id="timeline-loading" class="timeline-loading helper" style="display: none;">
     Loading more opportunities...
 </p>
@@ -266,12 +321,23 @@ ob_start();
     </button>
 </div>
 
+<!-- MINIMAL JAVASCRIPT -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Timeline page loaded - using link-based signup');
+    
     // Simple handler for "More details" buttons
     document.querySelectorAll('.details-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             alert('Event details feature coming soon!');
+        });
+    });
+    
+    // Log when volunteer links are clicked
+    document.querySelectorAll('.volunteer-btn').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            console.log('Volunteer link clicked: ' + this.href);
+            // Let the link work normally
         });
     });
 });

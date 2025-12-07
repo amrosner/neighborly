@@ -15,14 +15,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = connect_to_database();
             
-            $stmt = $pdo->prepare("SELECT USER_ID, USERNAME, PASSWORD_HASH FROM USERS WHERE USERNAME = :username");
+            // Fetch user data including ROLE
+            $stmt = $pdo->prepare("SELECT USER_ID, USERNAME, PASSWORD_HASH, ROLE FROM USERS WHERE USERNAME = :username");
             $stmt->execute(['username' => $username]);
             $user = $stmt->fetch();
-            // echo "We survived fetch";
             
             if ($user && hash('sha256', $password) === $user['PASSWORD_HASH']) {
-                // echo "We made it to verification";
-                header("Location: register.php"); // OJO: WE NEED TO CHANGE THIS TO TIMELINE OR PROFILE WHEN IT IS DONE. 
+                // Set session variables
+                $_SESSION['user_id'] = $user['USER_ID'];
+                $_SESSION['username'] = $user['USERNAME'];
+                $_SESSION['role'] = $user['ROLE'];
+                
+                // Redirect to timeline
+                header("Location: timeline.php");
                 exit();
             } else {
                 $error = "Invalid username or password.";
