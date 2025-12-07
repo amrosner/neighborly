@@ -8,20 +8,21 @@ $authPage  = false;
 
 $placeholderImage = "/static/img/placeholder.jpeg";
 
-// Handle volunteer signup via GET parameter
 $signup_message = "";
 $signup_error = "";
 
-// Check for signup via GET parameter
-if (isset($_GET['signup_event'])) {
-    $event_id = (int)$_GET['signup_event'];
+if (isset($_POST['ajax_signup_event'])) {
+    header('Content-Type: application/json');
+    
+    $response = ['success' => false, 'message' => ''];
+    $event_id = (int)$_POST['ajax_signup_event'];
     
     if (!isset($_SESSION['user_id'])) {
-        $signup_error = "Please log in to volunteer for events.";
+        $response['message'] = "Please log in to volunteer for events.";
     } elseif ($_SESSION['role'] !== 'volunteer') {
-        $signup_error = "Only volunteers can sign up for events.";
+        $response['message'] = "Only volunteers can sign up for events.";
     } elseif ($event_id <= 0) {
-        $signup_error = "Invalid event ID.";
+        $response['message'] = "Invalid event ID.";
     } else {
         $volunteer_id = $_SESSION['user_id'];
         
@@ -29,54 +30,85 @@ if (isset($_GET['signup_event'])) {
             $pdo = connect_to_database();
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             
-            // Check if event exists
-            $event_check = $pdo->prepare("SELECT event_id FROM events WHERE event_id = :event_id AND status = 'active'");
+            $event_check = $pdo->prepare("SELECT event_id, slots_available FROM events WHERE event_id = :event_id AND status = 'active'");
             $event_check->execute(['event_id' => $event_id]);
+            $event = $event_check->fetch();
             
-            if (!$event_check->fetch()) {
-                $signup_error = "Event not found or not active.";
+            if (!$event) {
+                $response['message'] = "Event not found or not active.";
             } else {
-                // Try to insert
-                try {
-                    $insert_stmt = $pdo->prepare("
-                        INSERT INTO event_attendees (event_id, volunteer_id, signup_timestamp, status)
-                        VALUES (:event_id, :volunteer_id, NOW(), 'registered')
+                $attendee_stmt = $pdo->prepare("
+                    SELECT COUNT(*) as registered_count 
+                    FROM event_attendees 
+                    WHERE event_id = :event_id AND status = 'registered'
+                ");
+                $attendee_stmt->execute(['event_id' => $event_id]);
+                $registered_count = $attendee_stmt->fetch()['registered_count'];
+                
+                $spots_remaining = $event['slots_available'] - $registered_count;
+                
+                if ($spots_remaining <= 0) {
+                    $response['message'] = "No spots available for this event.";
+                } else {
+                    $already_signed = $pdo->prepare("
+                        SELECT 1 FROM event_attendees 
+                        WHERE event_id = :event_id AND volunteer_id = :volunteer_id AND status = 'registered'
                     ");
-                    $insert_stmt->execute([
+                    $already_signed->execute([
                         'event_id' => $event_id,
                         'volunteer_id' => $volunteer_id
                     ]);
-                    $signup_message = "Successfully signed up for the event!";
                     
-                } catch (PDOException $e) {
-                    // If duplicate, update instead
-                    if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
-                        $update_stmt = $pdo->prepare("
-                            UPDATE event_attendees 
-                            SET status = 'registered', signup_timestamp = NOW() 
-                            WHERE event_id = :event_id AND volunteer_id = :volunteer_id
-                        ");
-                        $update_stmt->execute([
-                            'event_id' => $event_id,
-                            'volunteer_id' => $volunteer_id
-                        ]);
-                        $signup_message = "Successfully updated your registration!";
+                    if ($already_signed->fetch()) {
+                        $response['success'] = true;
+                        $response['message'] = "You are already signed up for this event.";
+                        $response['already_signed'] = true;
                     } else {
-                        throw $e;
+                        try {
+                            $insert_stmt = $pdo->prepare("
+                                INSERT INTO event_attendees (event_id, volunteer_id, signup_timestamp, status)
+                                VALUES (:event_id, :volunteer_id, NOW(), 'registered')
+                            ");
+                            $insert_stmt->execute([
+                                'event_id' => $event_id,
+                                'volunteer_id' => $volunteer_id
+                            ]);
+                            
+                            $response['success'] = true;
+                            $response['message'] = "Successfully signed up for the event!";
+                            $response['spots_remaining'] = $spots_remaining - 1;
+                            
+                        } catch (PDOException $e) {
+                            if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                                $update_stmt = $pdo->prepare("
+                                    UPDATE event_attendees 
+                                    SET status = 'registered', signup_timestamp = NOW() 
+                                    WHERE event_id = :event_id AND volunteer_id = :volunteer_id
+                                ");
+                                $update_stmt->execute([
+                                    'event_id' => $event_id,
+                                    'volunteer_id' => $volunteer_id
+                                ]);
+                                
+                                $response['success'] = true;
+                                $response['message'] = "Successfully updated your registration!";
+                                $response['already_signed'] = true;
+                            } else {
+                                throw $e;
+                            }
+                        }
                     }
                 }
             }
         } catch (PDOException $e) {
-            $signup_error = "An error occurred. Please try again.";
+            $response['message'] = "An error occurred. Please try again.";
         }
     }
     
-    // Remove the signup parameter to prevent re-submission on refresh
-    header("Location: timeline.php?success=" . urlencode($signup_message ?: $signup_error));
+    echo json_encode($response);
     exit;
 }
 
-// Check for success/error messages from redirect
 if (isset($_GET['success'])) {
     $success_msg = urldecode($_GET['success']);
     if (strpos($success_msg, 'Successfully') === 0) {
@@ -86,7 +118,6 @@ if (isset($_GET['success'])) {
     }
 }
 
-// Load events
 try {
     $pdo = connect_to_database();
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -228,7 +259,7 @@ ob_start();
 
                         <div class="actions-right">
                             <?php if ($opp["is_signed_up"]): ?>
-                                <button type="button" class="btn" disabled style="background-color: #28a745; cursor: not-allowed;">
+                                <button type="button" class="btn signed-up-btn" disabled style="background-color: #28a745; cursor: not-allowed;">
                                     ✓ Signed Up
                                 </button>
                             <?php elseif ((int)$opp["spots_remaining"] <= 0): ?>
@@ -236,15 +267,17 @@ ob_start();
                                     Event Full
                                 </button>
                             <?php else: ?>
-                                <a href="timeline.php?signup_event=<?= (int)$opp["id"] ?>" 
-                                   class="btn volunteer-btn"
-                                   onclick="return confirm('Are you sure you want to sign up for \'<?= addslashes($opp["title"]) ?>\'?')">
+                                <button type="button" 
+                                        class="btn volunteer-btn-ajax"
+                                        data-event-id="<?= (int)$opp["id"] ?>"
+                                        data-event-title="<?= htmlspecialchars($opp["title"]) ?>"
+                                        style="background-color: #007bff; color: white;">
                                     Volunteer
-                                </a>
+                                </button>
                             <?php endif; ?>
 
                             <?php if ((int)$opp["spots_remaining"] <= 5 && (int)$opp["spots_remaining"] > 0): ?>
-                                <div class="spots-warning">
+                                <div class="spots-warning" id="spots-<?= (int)$opp["id"] ?>">
                                     Only <?= (int)$opp["spots_remaining"] ?> spots left!
                                 </div>
                             <?php endif; ?>
@@ -268,10 +301,79 @@ ob_start();
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Simple handler for "More details" buttons
     document.querySelectorAll('.details-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             alert('Event details feature coming soon!');
+        });
+    });
+
+    document.querySelectorAll('.volunteer-btn-ajax').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-event-id');
+            const eventTitle = this.getAttribute('data-event-title');
+            const originalBtn = this;
+            
+            if (!confirm('Are you sure you want to sign up for \'' + eventTitle + '\'?')) {
+                console.log('User cancelled signup for event: ' + eventTitle);
+                return;
+            }
+            
+            originalBtn.disabled = true;
+            originalBtn.textContent = 'Signing up...';
+            originalBtn.style.backgroundColor = '#6c757d';
+            originalBtn.style.cursor = 'wait';
+
+            const formData = new FormData();
+            formData.append('ajax_signup_event', eventId);
+            
+            fetch('timeline.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    originalBtn.textContent = '✓ Signed Up';
+                    originalBtn.style.backgroundColor = '#28a745';
+                    originalBtn.style.cursor = 'not-allowed';
+                    originalBtn.classList.remove('volunteer-btn-ajax');
+                    originalBtn.classList.add('signed-up-btn');
+                    
+                    const spotsElement = document.getElementById('spots-' + eventId);
+                    if (spotsElement) {
+                        if (data.spots_remaining !== undefined && data.spots_remaining <= 0) {
+                            spotsElement.textContent = 'Event Full';
+                        } else if (data.spots_remaining !== undefined) {
+                            spotsElement.textContent = 'Only ' + data.spots_remaining + ' spots left!';
+                        }
+                    }
+                    
+                    alert(data.message);
+                } else {
+                    originalBtn.disabled = false;
+                    originalBtn.textContent = 'Volunteer';
+                    originalBtn.style.backgroundColor = '#007bff';
+                    originalBtn.style.cursor = 'pointer';
+                    
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Revert button to original state on error
+                originalBtn.disabled = false;
+                originalBtn.textContent = 'Volunteer';
+                originalBtn.style.backgroundColor = '#007bff';
+                originalBtn.style.cursor = 'pointer';
+                
+                alert('An error occurred. Please try again.');
+            });
         });
     });
 });
