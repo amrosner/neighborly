@@ -16,8 +16,8 @@ $errorMessage = '';
 if (isset($_POST['approve_event']) && is_numeric($_POST['event_id'])) {
     $eventId = (int)$_POST['event_id'];
     try {
-        $stmt = $pdo->prepare("UPDATE events SET is_approved = 1 WHERE event_id = ?");
-        $stmt->execute([$eventId]);
+        $stmt = $pdo->prepare("UPDATE events SET is_approved = 1 WHERE event_id = :event_id");
+        $stmt->execute(['event_id' => $eventId]);
         $successMessage = "Event approved successfully.";
     } catch (PDOException $e) {
         $errorMessage = "Error approving event: " . $e->getMessage();
@@ -28,8 +28,8 @@ if (isset($_POST['approve_event']) && is_numeric($_POST['event_id'])) {
 if (isset($_POST['reject_event']) && is_numeric($_POST['event_id'])) {
     $eventId = (int)$_POST['event_id'];
     try {
-        $stmt = $pdo->prepare("UPDATE events SET is_approved = 0, status = 'cancelled' WHERE event_id = ?");
-        $stmt->execute([$eventId]);
+        $stmt = $pdo->prepare("UPDATE events SET is_approved = 0, status = 'cancelled' WHERE event_id = :event_id");
+        $stmt->execute(['event_id' => $eventId]);
         $successMessage = "Event rejected successfully.";
     } catch (PDOException $e) {
         $errorMessage = "Error rejecting event: " . $e->getMessage();
@@ -40,8 +40,8 @@ if (isset($_POST['reject_event']) && is_numeric($_POST['event_id'])) {
 if (isset($_POST['delete_event']) && is_numeric($_POST['event_id'])) {
     $eventId = (int)$_POST['event_id'];
     try {
-        $stmt = $pdo->prepare("DELETE FROM events WHERE event_id = ?");
-        $stmt->execute([$eventId]);
+        $stmt = $pdo->prepare("DELETE FROM events WHERE event_id = :event_id");
+        $stmt->execute(['event_id' => $eventId]);
         $successMessage = "Event deleted successfully.";
     } catch (PDOException $e) {
         $errorMessage = "Error deleting event: " . $e->getMessage();
@@ -58,15 +58,15 @@ if (isset($_POST['delete_user']) && is_numeric($_POST['user_id'])) {
     } else {
         try {
             // Check if user is an admin
-            $stmt = $pdo->prepare("SELECT role FROM users WHERE user_id = ?");
-            $stmt->execute([$userIdToDelete]);
+            $stmt = $pdo->prepare("SELECT role FROM users WHERE user_id = :user_id");
+            $stmt->execute(['user_id' => $userIdToDelete]);
             $userToDelete = $stmt->fetch();
             
             if ($userToDelete['role'] === 'admin') {
                 $errorMessage = "Cannot delete admin users.";
             } else {
-                $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
-                $stmt->execute([$userIdToDelete]);
+                $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = :user_id");
+                $stmt->execute(['user_id' => $userIdToDelete]);
                 $successMessage = "User deleted successfully.";
             }
         } catch (PDOException $e) {
@@ -211,9 +211,9 @@ ob_start();
                     <tr>
                         <td><?php echo htmlspecialchars($user['user_id']); ?></td>
                         <td><?php echo htmlspecialchars($user['username']); ?></td>
-                        <td><?php echo htmlspecialchars($user['email']); ?></td>
+                        <td><?php echo $user['email'] !== null ? htmlspecialchars($user['email']) : '<em style="color: #999;">null</em>'; ?></td>
                         <td><?php echo htmlspecialchars($user['role']); ?></td>
-                        <td><?php echo htmlspecialchars($user['location']); ?></td>
+                        <td><?php echo $user['location'] !== null ? htmlspecialchars($user['location']) : '<em style="color: #999;">null</em>'; ?></td>
                         <td>
                             <div class="admin-actions">
                                 <?php if ($user['role'] !== 'admin'): ?>

@@ -2,43 +2,34 @@
 // pages/volunteer_profile.php
 session_start();
 
-// Include database configuration
 require_once '../config/database.php';
 
-// Connect to database
 $pdo = connect_to_database();
 
-// Include locations from config file
 $locationsPath = __DIR__ . '/../config/locations.php';
 if (!file_exists($locationsPath)) {
     die("Error: Locations file not found at: " . $locationsPath);
 }
 $locations = require $locationsPath;
 
-// Authentication check - redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
 
-// Check if user is a volunteer
 if ($_SESSION['role'] !== 'volunteer') {
     header("Location: login.php");
     exit;
 }
 
-// Get user ID from session
 $userId = $_SESSION['user_id'];
 
-// Initialize errors array
 $errors = [];
 
-// Handle "Stop participating" action
 if (isset($_GET['stop_event']) && is_numeric($_GET['stop_event'])) {
     $eventId = (int)$_GET['stop_event'];
     
     try {
-        // Update event_attendees status to cancelled
         $stmt = $pdo->prepare("
             UPDATE event_attendees 
             SET status = 'cancelled' 
@@ -56,11 +47,9 @@ if (isset($_GET['stop_event']) && is_numeric($_GET['stop_event'])) {
     }
 }
 
-// Handle form submission (Save button)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_profile'])) {
     $errors = [];
     
-    // Get form data
     $email = trim($_POST['email'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $firstName = trim($_POST['first_name'] ?? '');
@@ -71,12 +60,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_profile'])) {
     $newPassword = $_POST['new_password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
     
-    // Validate password change if provided
+    if (!empty($phone)) {
+        if (!preg_match('/^\d{3}-\d{3}-\d{4}$/', $phone)) {
+            $errors[] = "Phone number must be in format: XXX-XXX-XXXX (e.g., 123-456-7890)";
+        }
+    }
+    
     if (!empty($newPassword)) {
         if (empty($oldPassword)) {
             $errors[] = "Old password is required to set a new password.";
         } else {
-            // Verify old password - FIXED: Use === instead of !hash() ===
             $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE user_id = :user_id");
             $stmt->execute(['user_id' => $userId]);
             $user = $stmt->fetch();
@@ -97,10 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_profile'])) {
         }
     }
     
-    // If no errors, update database
     if (empty($errors)) {
         try {
-            // Update users table
             if (!empty($newPassword)) {
                 $passwordHash = hash('sha256', $newPassword);
                 $stmt = $pdo->prepare("
@@ -129,7 +120,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_profile'])) {
                 ]);
             }
             
-            // Update volunteers table
             $stmt = $pdo->prepare("
                 UPDATE volunteers 
                 SET first_name = :first_name, last_name = :last_name
@@ -141,7 +131,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_profile'])) {
                 'user_id' => $userId
             ]);
             
-            // Update skills - delete old ones and insert new ones
             $stmt = $pdo->prepare("DELETE FROM user_skills WHERE user_id = :user_id");
             $stmt->execute(['user_id' => $userId]);
             
@@ -155,7 +144,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_profile'])) {
                 }
             }
             
-            // Redirect to view mode with success
             header("Location: volunteer_profile.php?success=1");
             exit;
             
@@ -165,10 +153,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_profile'])) {
     }
 }
 
-// Check if we're in edit mode
 $editMode = isset($_GET['edit']) && $_GET['edit'] === 'true';
 
-// Fetch volunteer information
 $stmt = $pdo->prepare("
     SELECT u.username, u.email, u.phone, u.location, v.first_name, v.last_name, v.bio
     FROM users u
@@ -178,7 +164,6 @@ $stmt = $pdo->prepare("
 $stmt->execute(['user_id' => $userId]);
 $volunteer = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Fetch volunteer skills
 $stmt = $pdo->prepare("
     SELECT s.skill_id, s.skill_name
     FROM user_skills us
@@ -188,12 +173,10 @@ $stmt = $pdo->prepare("
 $stmt->execute(['user_id' => $userId]);
 $volunteerSkills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all available skills for the edit form
 $stmt = $pdo->prepare("SELECT skill_id, skill_name FROM skills ORDER BY skill_name");
 $stmt->execute();
 $allSkills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch active events volunteer is participating in (status = 'registered')
 $stmt = $pdo->prepare("
     SELECT e.event_id, e.title, ea.status
     FROM event_attendees ea
@@ -206,7 +189,6 @@ $stmt = $pdo->prepare("
 $stmt->execute(['volunteer_id' => $userId]);
 $activeEvents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch past events (completed or cancelled)
 $stmt = $pdo->prepare("
     SELECT e.event_id, e.title, e.status AS event_status, ea.status AS attendee_status
     FROM event_attendees ea
@@ -223,7 +205,6 @@ $stmt = $pdo->prepare("
 $stmt->execute(['volunteer_id' => $userId]);
 $pastEvents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Note: $locations array is defined at the top of the file
 
 $pageTitle = $editMode ? "Edit Profile - Neighborly" : "Profile - Neighborly";
 $authPage = false;
@@ -232,7 +213,6 @@ ob_start();
 ?>
 
 <?php if (!$editMode): ?>
-    <!-- VIEW MODE -->
     <div class="profile-container">
         <div class="profile-greeting">
             <h1>Greetings @<?php echo htmlspecialchars($volunteer['username']); ?> :)</h1>
@@ -343,7 +323,6 @@ ob_start();
     </div>
 
 <?php else: ?>
-    <!-- EDIT MODE -->
     <div class="profile-form">
         <h1>Edit profile</h1>
 
@@ -351,31 +330,39 @@ ob_start();
             
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($volunteer['email'] ?? ''); ?>">
+                <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($volunteer['email'] ?? ''); ?>" required>
             </div>
 
             <div class="form-group">
-                <label for="phone">Phone</label>
-                <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($volunteer['phone'] ?? ''); ?>">
+                <label for="phone">Phone (Format: XXX-XXX-XXXX)</label>
+                <input type="tel" 
+                       id="phone" 
+                       name="phone" 
+                       value="<?php echo htmlspecialchars($volunteer['phone'] ?? ''); ?>"
+                       pattern="^\d{3}-\d{3}-\d{4}$"
+                       title="Phone number must be in format: XXX-XXX-XXXX (e.g., 123-456-7890)"
+                       placeholder="123-456-7890"
+                       oninput="formatPhoneNumber(this)">
+                <small style="color: #666; font-size: 0.9rem;">Format: XXX-XXX-XXXX (e.g., 123-456-7890)</small>
             </div>
 
             <div class="form-group">
                 <label for="first_name">First name</label>
-                <input type="text" id="first_name" name="first_name" value="<?php echo htmlspecialchars($volunteer['first_name'] ?? ''); ?>">
+                <input type="text" id="first_name" name="first_name" value="<?php echo htmlspecialchars($volunteer['first_name'] ?? ''); ?>" required>
             </div>
 
             <div class="form-group">
-                <label for="last_name">Last</label>
-                <input type="text" id="last_name" name="last_name" value="<?php echo htmlspecialchars($volunteer['last_name'] ?? ''); ?>">
+                <label for="last_name">Last name</label>
+                <input type="text" id="last_name" name="last_name" value="<?php echo htmlspecialchars($volunteer['last_name'] ?? ''); ?>" required>
             </div>
 
             <div class="form-group">
-                <label>Password</label>
+                <label>Password (leave blank to keep current)</label>
                 <input type="password" name="old_password">
             </div>
 
             <div class="form-group">
-                <label>New password</label>
+                <label>New password (leave blank to keep current)</label>
                 <input type="password" name="new_password">
             </div>
 
@@ -389,7 +376,6 @@ ob_start();
                 
                 <div class="skills-group">
                     <?php 
-                    // Create array of user's skill IDs for easy checking
                     $userSkillIds = array_column($volunteerSkills, 'skill_id');
                     
                     foreach ($allSkills as $skill): 
@@ -407,7 +393,7 @@ ob_start();
 
             <div class="form-group">
                 <label for="location">Location</label>
-                <select id="location" name="location">
+                <select id="location" name="location" required>
                     <option value="">Select a location</option>
                     <?php 
                     if (isset($locations) && is_array($locations)) {
@@ -431,6 +417,48 @@ ob_start();
 
         </form>
     </div>
+
+    <script>
+    function formatPhoneNumber(input) {
+        let value = input.value.replace(/\D/g, '');
+        
+        if (value.length > 0) {
+            if (value.length <= 3) {
+                input.value = value;
+            } else if (value.length <= 6) {
+                input.value = value.substr(0, 3) + '-' + value.substr(3);
+            } else {
+                input.value = value.substr(0, 3) + '-' + value.substr(3, 3) + '-' + value.substr(6, 4);
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const phoneInput = document.getElementById('phone');
+        if (phoneInput && phoneInput.value) {
+            if (!/^\d{3}-\d{3}-\d{4}$/.test(phoneInput.value)) {
+                formatPhoneNumber(phoneInput);
+            }
+        }
+        
+        if (phoneInput) {
+            phoneInput.addEventListener('keydown', function(e) {
+                if ([46, 8, 9, 27, 13].indexOf(e.keyCode) !== -1 ||
+                    (e.keyCode === 65 && e.ctrlKey === true) ||
+                    (e.keyCode === 67 && e.ctrlKey === true) ||
+                    (e.keyCode === 86 && e.ctrlKey === true) ||
+                    (e.keyCode === 88 && e.ctrlKey === true) ||
+                    (e.keyCode >= 35 && e.keyCode <= 39)) {
+                    return;
+                }
+                
+                if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                    e.preventDefault();
+                }
+            });
+        }
+    });
+    </script>
 
 <?php endif; ?>
 
