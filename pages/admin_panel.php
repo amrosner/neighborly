@@ -2,17 +2,13 @@
 // pages/admin_panel.php
 session_start();
 
-// Include database configuration
 require_once '../config/database.php';
 
-// Connect to database
 $pdo = connect_to_database();
 
-// Handle admin actions
 $successMessage = '';
 $errorMessage = '';
 
-// Approve event
 if (isset($_POST['approve_event']) && is_numeric($_POST['event_id'])) {
     $eventId = (int)$_POST['event_id'];
     try {
@@ -24,7 +20,6 @@ if (isset($_POST['approve_event']) && is_numeric($_POST['event_id'])) {
     }
 }
 
-// Reject event
 if (isset($_POST['reject_event']) && is_numeric($_POST['event_id'])) {
     $eventId = (int)$_POST['event_id'];
     try {
@@ -36,7 +31,6 @@ if (isset($_POST['reject_event']) && is_numeric($_POST['event_id'])) {
     }
 }
 
-// Delete event
 if (isset($_POST['delete_event']) && is_numeric($_POST['event_id'])) {
     $eventId = (int)$_POST['event_id'];
     try {
@@ -48,16 +42,13 @@ if (isset($_POST['delete_event']) && is_numeric($_POST['event_id'])) {
     }
 }
 
-// Delete user
 if (isset($_POST['delete_user']) && is_numeric($_POST['user_id'])) {
     $userIdToDelete = (int)$_POST['user_id'];
     
-    // Prevent deleting yourself
     if ($userIdToDelete === $_SESSION['user_id']) {
         $errorMessage = "You cannot delete yourself.";
     } else {
         try {
-            // Check if user is an admin
             $stmt = $pdo->prepare("SELECT role FROM users WHERE user_id = :user_id");
             $stmt->execute(['user_id' => $userIdToDelete]);
             $userToDelete = $stmt->fetch();
@@ -75,19 +66,16 @@ if (isset($_POST['delete_user']) && is_numeric($_POST['user_id'])) {
     }
 }
 
-// Authentication check - redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
 
-// Check if user is an admin
 if ($_SESSION['role'] !== 'admin') {
     header("Location: login.php");
     exit;
 }
 
-// Fetch pending events (not approved)
 $stmt = $pdo->prepare("
     SELECT e.event_id, e.title, e.start_date, e.location, u.username as organizer_name
     FROM events e
@@ -99,7 +87,6 @@ $stmt = $pdo->prepare("
 $stmt->execute();
 $pendingEvents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all users
 $stmt = $pdo->prepare("
     SELECT user_id, username, email, role, location
     FROM users
@@ -108,7 +95,6 @@ $stmt = $pdo->prepare("
 $stmt->execute();
 $allUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all events
 $stmt = $pdo->prepare("
     SELECT e.event_id, e.title, e.status, e.is_approved, e.start_date, u.username as organizer_name
     FROM events e
