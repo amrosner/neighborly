@@ -1,4 +1,5 @@
 <?php
+// pages/volunteer_profile.php
 session_start();
 
 require_once '../config/database.php';
@@ -203,6 +204,7 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute(['volunteer_id' => $userId]);
 $pastEvents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 $pageTitle = $editMode ? "Edit Profile - Neighborly" : "Profile - Neighborly";
 $authPage = false;
