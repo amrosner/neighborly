@@ -2,21 +2,16 @@
 // pages/timeline.php
 session_start();
 require_once '../config/database.php';
-
 $pageTitle = "Neighborly - Opportunities Timeline";
 $authPage  = false;
-
 $placeholderImage = "/static/img/placeholder.jpeg";
-
 $signup_message = "";
 $signup_error = "";
-
 $locationsPath = __DIR__ . '/../config/locations.php';
 if (!file_exists($locationsPath)) {
     die("Error: Locations file not found at: " . $locationsPath);
 }
 $locations = require $locationsPath;
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_event'])) {
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'organizer') {
         $signup_error = "Only organizers can create events.";
@@ -103,7 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_event'])) {
         }
     }
 }
-
 if (isset($_POST['ajax_signup_event'])) {
     header('Content-Type: application/json');
     
@@ -202,7 +196,6 @@ if (isset($_POST['ajax_signup_event'])) {
     echo json_encode($response);
     exit;
 }
-
 if (isset($_GET['success'])) {
     $success_msg = urldecode($_GET['success']);
     if (strpos($success_msg, 'Successfully') === 0) {
@@ -211,7 +204,6 @@ if (isset($_GET['success'])) {
         $signup_error = $success_msg;
     }
 }
-
 try {
     $pdo = connect_to_database();
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -284,14 +276,12 @@ try {
 } catch (PDOException $e) {
     $opportunities = [];
 }
-
 ob_start();
 ?>
 <h1>Upcoming Opportunities</h1>
 <p class="helper">
     Discover volunteer opportunities in your community.
 </p>
-
 <?php if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'organizer'): ?>
     <div style="margin-bottom: 1.5rem; text-align: right;">
         <button type="button" id="create-event-btn" class="btn" style="background-color: #28a745; color: white;">
@@ -299,19 +289,16 @@ ob_start();
         </button>
     </div>
 <?php endif; ?>
-
 <?php if (!empty($signup_message)): ?>
     <div class="success-message" style="background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
         <?php echo htmlspecialchars($signup_message); ?>
     </div>
 <?php endif; ?>
-
 <?php if (!empty($signup_error)): ?>
     <div class="error-message" style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
         <strong>Error:</strong> <?php echo htmlspecialchars($signup_error); ?>
     </div>
 <?php endif; ?>
-
 <div id="create-event-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
     <div style="background: white; max-width: 600px; margin: 50px auto; padding: 2rem; border-radius: 8px; position: relative;">
         <button type="button" id="close-modal" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
@@ -369,7 +356,6 @@ ob_start();
         </form>
     </div>
 </div>
-
 <div id="timeline" class="timeline">
     <?php if (empty($opportunities)): ?>
         <p class="helper" style="text-align: center; padding: 2rem;">
@@ -382,7 +368,6 @@ ob_start();
                      data-spots="<?= (int)$opp["spots_remaining"] ?>">
                 <div class="timeline-card-image">
                         <img src="<?= htmlspecialchars($opp["image_url"]) ?>" alt="">
-
                         <?php if (!empty($opp["organization"])): ?>
                             <a class="timeline-org-badge"
                             href="#">
@@ -390,7 +375,6 @@ ob_start();
                             </a>
                         <?php endif; ?>
                 </div>
-
                 <div class="timeline-card-body">
                     <div class="timeline-card-meta">
                         <span class="timeline-date"><?= htmlspecialchars($opp["date_display"]) ?></span>
@@ -401,22 +385,18 @@ ob_start();
                             <span class="timeline-city"><?= htmlspecialchars($opp["city"]) ?></span>
                         <?php endif; ?>
                     </div>
-
                     <h2 class="timeline-card-title">
                         <?= htmlspecialchars($opp["title"]) ?>
                     </h2>
-
                     <?php if (!empty($opp["description"])): ?>
                         <p class="timeline-card-description">
                             <?= htmlspecialchars($opp["description"]) ?>
                         </p>
                     <?php endif; ?>
-
                     <div class="timeline-card-actions">
                         <div class="actions-left">
-                            <button type="button" class="btn btn-outline details-btn">More details</button>
+                            <a href="opportunity_details.php?id=<?= (int)$opp["id"] ?>" class="btn btn-outline">More details</a>
                         </div>
-
                         <div class="actions-right">
                             <?php if ($opp["is_signed_up"]): ?>
                                 <button type="button" class="btn signed-up-btn" disabled style="background-color: #28a745; cursor: not-allowed;">
@@ -435,7 +415,6 @@ ob_start();
                                     Volunteer
                                 </button>
                             <?php endif; ?>
-
                             <?php if ((int)$opp["spots_remaining"] <= 5 && (int)$opp["spots_remaining"] > 0): ?>
                                 <div class="spots-warning" id="spots-<?= (int)$opp["id"] ?>">
                                     Only <?= (int)$opp["spots_remaining"] ?> spots left!
@@ -448,17 +427,14 @@ ob_start();
         <?php endforeach; ?>
     <?php endif; ?>
 </div>
-
 <p id="timeline-loading" class="timeline-loading helper" style="display: none;">
     Loading more opportunities...
 </p>
-
 <div class="timeline-show-more-wrap">
     <button id="timeline-show-more" type="button" class="btn btn-full">
         Show more opportunities
     </button>
 </div>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const createEventBtn = document.getElementById('create-event-btn');
@@ -490,12 +466,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    document.querySelectorAll('.details-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            alert('Event details feature coming soon!');
-        });
-    });
-
     document.querySelectorAll('.volunteer-btn-ajax').forEach(function(btn) {
         btn.addEventListener('click', function() {
             const eventId = this.getAttribute('data-event-id');
@@ -511,7 +481,6 @@ document.addEventListener('DOMContentLoaded', function() {
             originalBtn.textContent = 'Signing up...';
             originalBtn.style.backgroundColor = '#6c757d';
             originalBtn.style.cursor = 'wait';
-
             const formData = new FormData();
             formData.append('ajax_signup_event', eventId);
             
@@ -566,7 +535,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-
 <?php
 $content = ob_get_clean();
 include "base.php";
