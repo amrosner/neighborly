@@ -262,15 +262,12 @@ ob_start();
                     </div>
                 </section>
                 
-                <!-- Spacer between skills and Q&A -->
                 <div style="margin: 3rem 0;"></div>
             <?php endif; ?>
             
-            <!-- Comments/Questions Section -->
             <section class="details-section">
                 <h2>Questions & Answers</h2>
                 
-                <!-- Question Submission Form (for volunteers) -->
                 <?php if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'volunteer'): ?>
                     <div class="question-form" style="margin-bottom: 2rem; padding: 1.5rem; background-color: #f8f9fa; border-radius: 6px;">
                         <h3>Ask a Question</h3>
@@ -289,7 +286,6 @@ ob_start();
                     </div>
                 <?php endif; ?>
                 
-                <!-- Questions List -->
                 <div class="questions-list">
                     <?php if (empty($questions)): ?>
                         <p style="text-align: center; color: #6c757d; padding: 2rem;">
@@ -300,7 +296,6 @@ ob_start();
                             <div class="question-item" 
                                  style="border: 1px solid #e9ecef; border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem; background-color: white;">
                                 
-                                <!-- Question -->
                                 <div class="question-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
                                     <div>
                                         <strong>
@@ -319,7 +314,6 @@ ob_start();
                                         </span>
                                     </div>
                                     
-                                    <!-- Delete button for admins -->
                                     <?php if ($isAdmin): ?>
                                         <form method="POST" action="" style="margin: 0;">
                                             <input type="hidden" name="question_id" value="<?php echo $question['question_id']; ?>">
@@ -334,7 +328,6 @@ ob_start();
                                 
                                 <p style="margin-bottom: 1rem;"><?php echo nl2br(htmlspecialchars($question['question_text'])); ?></p>
                                 
-                                <!-- Answer -->
                                 <?php if (!empty($question['answer_text'])): ?>
                                     <div class="answer" 
                                          style="border-left: 3px solid #007bff; padding-left: 1rem; margin-top: 1rem; background-color: #f8f9fa; padding: 1rem; border-radius: 4px;">
@@ -349,7 +342,6 @@ ob_start();
                                         <p style="margin: 0;"><?php echo nl2br(htmlspecialchars($question['answer_text'])); ?></p>
                                     </div>
                                 <?php elseif ($isOrganizer): ?>
-                                    <!-- Answer Form for Organizers -->
                                     <div class="answer-form" style="margin-top: 1rem;">
                                         <form method="POST" action="">
                                             <input type="hidden" name="question_id" value="<?php echo $question['question_id']; ?>">
