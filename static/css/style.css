@@ -748,3 +748,140 @@ small,
 .timeline-org-badge:hover {
     background: rgba(0,0,0,0.85);
 }
+
+/*************** Opportunity Details ***************/
+
+.details-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+@media (max-width: 800px) {
+    .details-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.details-main {
+    background: var(--color-surface);
+    border-radius: 10px;
+    padding: 1.5rem 1.5rem 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.details-image img {
+    width: 100%;
+    max-height: 320px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.details-header h1 {
+    margin-bottom: 0.25rem;
+}
+
+.details-org {
+    font-weight: 500;
+    color: var(--color-text);
+    margin: 0 0 0.25rem;
+}
+
+.details-meta {
+    margin: 0 0 1rem;
+    font-size: 0.9rem;
+    color: var(--color-muted);
+}
+
+.details-short {
+    font-size: 0.98rem;
+    margin-bottom: 1.25rem;
+}
+
+.details-divider {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin: 1.5rem 0;
+}
+
+.details-section h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.details-section ul {
+    padding-left: 1.2rem;
+    margin: 0 0 1.2rem;
+}
+
+.details-section li {
+    margin-bottom: 0.35rem;
+}
+
+/* Tags */
+.details-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.details-tag {
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: #f0f4f7;
+    font-size: 0.85rem;
+    color: var(--color-text);
+}
+
+/* Sidebar */
+.details-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.details-sidebar-card {
+    background: var(--color-surface);
+    border-radius: 10px;
+    padding: 1rem 1.1rem 1.3rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    font-size: 0.95rem;
+}
+
+.details-sidebar-card h2 {
+    font-size: 1.05rem;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.details-spots {
+    margin: 0.25rem 0 0.75rem;
+}
+
+.details-warning {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.details-full {
+    color: #777;
+    font-weight: 500;
+}
+
+/* Volunteer button on details page */
+.details-volunteer-btn {
+    width: 100%;
+    text-align: center;
+}
+
+/* When a user volunteers, gray out the button */
+.volunteer-btn.volunteered,
+.details-volunteer-btn.volunteered {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #ffffff !important;
+    cursor: default;
+    opacity: 0.9;
+}

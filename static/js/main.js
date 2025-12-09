@@ -70,4 +70,19 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
     }
+    
+    // ===========================
+    // 3. Details page: Volunteer button
+    // ===========================
+    const detailsVolunteerBtn = document.querySelector(".details-volunteer-btn");
+
+    if (detailsVolunteerBtn) {
+        detailsVolunteerBtn.addEventListener("click", () => {
+            if (detailsVolunteerBtn.classList.contains("volunteered")) return;
+
+            detailsVolunteerBtn.textContent = "You volunteered!";
+            detailsVolunteerBtn.disabled = true;
+            detailsVolunteerBtn.classList.add("volunteered");
+        });
+    }
 });
