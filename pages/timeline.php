@@ -12,6 +12,18 @@ if (!file_exists($locationsPath)) {
     die("Error: Locations file not found at: " . $locationsPath);
 }
 $locations = require $locationsPath;
+
+// Fetch all available skills
+try {
+    $pdo = connect_to_database();
+    $skills_stmt = $pdo->prepare("SELECT skill_id, skill_name FROM skills ORDER BY skill_name");
+    $skills_stmt->execute();
+    $all_skills = $skills_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Skills fetch error: " . $e->getMessage());
+    $all_skills = [];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_event'])) {
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'organizer') {
         $signup_error = "Only organizers can create events.";
@@ -23,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_event'])) {
         $end_date = trim($_POST['end_date'] ?? '');
         $slots_available = (int)($_POST['slots_available'] ?? 0);
         $image_url = trim($_POST['image_url'] ?? '');
+        $selected_skills = $_POST['event_skills'] ?? [];
         
         if (empty($title) || empty($description) || empty($location) || empty($start_date) || empty($end_date)) {
             $signup_error = "Please fill in all required fields.";
@@ -47,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_event'])) {
                 try {
                     $pdo = connect_to_database();
                     
+                    // Insert event
                     $stmt = $pdo->prepare("
                         INSERT INTO events (
                             organizer_id, 
@@ -88,6 +102,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_event'])) {
                         'slots_available' => $slots_available
                     ]);
                     
+                    $event_id = $pdo->lastInsertId();
+                    
+                    // Insert event skills
+                    if (!empty($selected_skills)) {
+                        $skill_stmt = $pdo->prepare("
+                            INSERT INTO event_skills (event_id, skill_id) 
+                            VALUES (:event_id, :skill_id)
+                        ");
+                        
+                        foreach ($selected_skills as $skill_id) {
+                            $skill_stmt->execute([
+                                'event_id' => $event_id,
+                                'skill_id' => (int)$skill_id
+                            ]);
+                        }
+                    }
+                    
                     $signup_message = "Event created successfully! Your event is now under review by the administrator and will appear on the timeline once approved.";
                     
                 } catch (PDOException $e) {
@@ -98,6 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_event'])) {
         }
     }
 }
+
 if (isset($_POST['ajax_signup_event'])) {
     header('Content-Type: application/json');
     
@@ -124,6 +156,37 @@ if (isset($_POST['ajax_signup_event'])) {
             if (!$event) {
                 $response['message'] = "Event not found or not active.";
             } else {
+                // Check if event has required skills
+                $event_skills_stmt = $pdo->prepare("
+                    SELECT skill_id FROM event_skills WHERE event_id = :event_id
+                ");
+                $event_skills_stmt->execute(['event_id' => $event_id]);
+                $required_skill_ids = $event_skills_stmt->fetchAll(PDO::FETCH_COLUMN);
+                
+                if (!empty($required_skill_ids)) {
+                    // Get volunteer's skills
+                    $volunteer_skills_stmt = $pdo->prepare("
+                        SELECT skill_id FROM user_skills WHERE user_id = :user_id
+                    ");
+                    $volunteer_skills_stmt->execute(['user_id' => $volunteer_id]);
+                    $volunteer_skill_ids = $volunteer_skills_stmt->fetchAll(PDO::FETCH_COLUMN);
+                    
+                    // Check if volunteer has at least one required skill
+                    $has_required_skill = false;
+                    foreach ($required_skill_ids as $required_skill) {
+                        if (in_array($required_skill, $volunteer_skill_ids)) {
+                            $has_required_skill = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$has_required_skill) {
+                        $response['message'] = "You do not have the required skills for this event. Please update your profile with relevant skills.";
+                        echo json_encode($response);
+                        exit;
+                    }
+                }
+                
                 $attendee_stmt = $pdo->prepare("
                     SELECT COUNT(*) as registered_count 
                     FROM event_attendees 
@@ -196,6 +259,7 @@ if (isset($_POST['ajax_signup_event'])) {
     echo json_encode($response);
     exit;
 }
+
 if (isset($_GET['success'])) {
     $success_msg = urldecode($_GET['success']);
     if (strpos($success_msg, 'Successfully') === 0) {
@@ -248,6 +312,8 @@ try {
         $spots_remaining = $event['slots_available'] - $registered_count;
         
         $is_signed_up = false;
+        $has_required_skills = true;
+        
         if (isset($_SESSION['user_id'])) {
             $signup_check = $pdo->prepare("
                 SELECT 1 FROM event_attendees 
@@ -258,6 +324,31 @@ try {
                 'volunteer_id' => $_SESSION['user_id']
             ]);
             $is_signed_up = (bool)$signup_check->fetch();
+            
+            // Check if volunteer has required skills
+            if ($_SESSION['role'] === 'volunteer') {
+                $event_skills_stmt = $pdo->prepare("
+                    SELECT skill_id FROM event_skills WHERE event_id = :event_id
+                ");
+                $event_skills_stmt->execute(['event_id' => $event['event_id']]);
+                $required_skill_ids = $event_skills_stmt->fetchAll(PDO::FETCH_COLUMN);
+                
+                if (!empty($required_skill_ids)) {
+                    $volunteer_skills_stmt = $pdo->prepare("
+                        SELECT skill_id FROM user_skills WHERE user_id = :user_id
+                    ");
+                    $volunteer_skills_stmt->execute(['user_id' => $_SESSION['user_id']]);
+                    $volunteer_skill_ids = $volunteer_skills_stmt->fetchAll(PDO::FETCH_COLUMN);
+                    
+                    $has_required_skills = false;
+                    foreach ($required_skill_ids as $required_skill) {
+                        if (in_array($required_skill, $volunteer_skill_ids)) {
+                            $has_required_skills = true;
+                            break;
+                        }
+                    }
+                }
+            }
         }
         
         $opportunities[] = [
@@ -271,6 +362,7 @@ try {
             "organization"    => $org_name,
             "description"     => $event['description'],
             "is_signed_up"    => $is_signed_up,
+            "has_required_skills" => $has_required_skills,
         ];
     }
 } catch (PDOException $e) {
@@ -344,6 +436,21 @@ ob_start();
             </div>
             
             <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Required Skills (optional)</label>
+                <div style="max-height: 150px; overflow-y: auto; border: 1px solid #ccc; padding: 0.5rem; border-radius: 4px;">
+                    <?php foreach ($all_skills as $skill): ?>
+                        <div style="margin-bottom: 0.5rem;">
+                            <input type="checkbox" id="skill_<?php echo $skill['skill_id']; ?>" name="event_skills[]" value="<?php echo $skill['skill_id']; ?>">
+                            <label for="skill_<?php echo $skill['skill_id']; ?>" style="font-weight: normal;">
+                                <?php echo htmlspecialchars($skill['skill_name']); ?>
+                            </label>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <small style="color: #666;">Volunteers must have at least one of these skills to sign up</small>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
                 <label for="image_url" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Image URL (optional)</label>
                 <input type="url" id="image_url" name="image_url" placeholder="https://example.com/image.jpg" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
                 <small style="color: #666;">Provide a URL to an image for your event</small>
@@ -405,6 +512,10 @@ ob_start();
                             <?php elseif ((int)$opp["spots_remaining"] <= 0): ?>
                                 <button type="button" class="btn" disabled style="background-color: #6c757d; cursor: not-allowed;">
                                     Event Full
+                                </button>
+                            <?php elseif (!$opp["has_required_skills"]): ?>
+                                <button type="button" class="btn" disabled style="background-color: #dc3545; cursor: not-allowed;" title="You don't have the required skills">
+                                    Skills Required
                                 </button>
                             <?php else: ?>
                                 <button type="button" 
