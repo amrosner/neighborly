@@ -4,7 +4,7 @@ session_start();
 require_once '../config/database.php';
 $pageTitle = "Neighborly - Opportunities Timeline";
 $authPage  = false;
-$placeholderImage = "/static/img/placeholder.jpeg";
+$placeholderImage = "../static/img/placeholder.jpeg";
 $signup_message = "";
 $signup_error = "";
 $locationsPath = __DIR__ . '/../config/locations.php';
