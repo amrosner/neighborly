@@ -30,17 +30,17 @@ $userRole = $_SESSION['role'] ?? null;
 
             <?php if (!$authPage && $isLoggedIn): ?>
                 <nav class="topbar-nav">
-                    <a href="/pages/timeline.php">Timeline</a>
+                    <a href="timeline.php">Timeline</a>
                     
                     <?php if ($userRole === 'volunteer'): ?>
-                        <a href="/pages/volunteer_profile.php">Profile</a>
+                        <a href="volunteer_profile.php">Profile</a>
                     <?php elseif ($userRole === 'organizer'): ?>
-                        <a href="/pages/organizer_profile.php">Organization</a>
+                        <a href="organizer_profile.php">Organization</a>
                     <?php elseif ($userRole === 'admin'): ?>
-                        <a href="/pages/admin_panel.php">Admin Panel</a>
+                        <a href="admin_panel.php">Admin Panel</a>
                     <?php endif; ?>
                     
-                    <a href="/pages/logout.php">Sign Out</a>
+                    <a href="logout.php">Sign Out</a>
                 </nav>
             <?php endif; ?>
         </div>
