@@ -19,6 +19,7 @@ $error = "";
 $questions = [];
 $isOrganizer = false;
 $isAdmin = false;
+$signedUpVolunteers = [];
 
 if ($opportunityId <= 0) {
     $error = "Invalid event ID.";
@@ -107,6 +108,66 @@ if ($opportunityId <= 0) {
                 ");
                 $stmt->execute(['user_id' => $_SESSION['user_id']]);
                 $isAdmin = (bool)$stmt->fetch();
+            }
+            
+            if ($isOrganizer || $isAdmin) {
+                $stmt = $pdo->prepare("
+                    SELECT volunteer_id
+                    FROM event_attendees
+                    WHERE event_id = :event_id AND (status = 'registered' OR status = 'confirmed')
+                    ORDER BY signup_timestamp DESC
+                ");
+                $stmt->execute(['event_id' => $opportunityId]);
+                $volunteerIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                
+                foreach ($volunteerIds as $volunteerId) {
+                    $stmt = $pdo->prepare("
+                        SELECT username, email, phone
+                        FROM users
+                        WHERE user_id = :user_id
+                    ");
+                    $stmt->execute(['user_id' => $volunteerId]);
+                    $volunteerUser = $stmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    $stmt = $pdo->prepare("
+                        SELECT first_name, last_name
+                        FROM volunteers
+                        WHERE user_id = :user_id
+                    ");
+                    $stmt->execute(['user_id' => $volunteerId]);
+                    $volunteerProfile = $stmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    $stmt = $pdo->prepare("
+                        SELECT skill_id
+                        FROM user_skills
+                        WHERE user_id = :user_id
+                    ");
+                    $stmt->execute(['user_id' => $volunteerId]);
+                    $volunteerSkillIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                    
+                    $volunteerSkills = [];
+                    foreach ($volunteerSkillIds as $skillId) {
+                        $stmt = $pdo->prepare("
+                            SELECT skill_name
+                            FROM skills
+                            WHERE skill_id = :skill_id
+                        ");
+                        $stmt->execute(['skill_id' => $skillId]);
+                        $skill = $stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($skill) {
+                            $volunteerSkills[] = $skill['skill_name'];
+                        }
+                    }
+                    
+                    $signedUpVolunteers[] = [
+                        'username' => $volunteerUser['username'] ?? 'Unknown',
+                        'first_name' => $volunteerProfile['first_name'] ?? '',
+                        'last_name' => $volunteerProfile['last_name'] ?? '',
+                        'email' => $volunteerUser['email'] ?? '',
+                        'phone' => $volunteerUser['phone'] ?? '',
+                        'skills' => $volunteerSkills
+                    ];
+                }
             }
             
             $stmt = $pdo->prepare("
@@ -212,7 +273,7 @@ ob_start();
     <div class="error-message" style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; text-align: center;">
         <strong>Error:</strong> <?php echo htmlspecialchars($error); ?>
         <br><br>
-        <a href="/pages/timeline.php" class="btn">← Back to Timeline</a>
+        <a href="timeline.php" class="btn">← Back to Timeline</a>
     </div>
 <?php else: ?>
     <div class="details-layout">
@@ -258,6 +319,72 @@ ob_start();
                     <div class="details-tags">
                         <?php foreach ($eventSkills as $skill): ?>
                             <span class="details-tag"><?php echo htmlspecialchars($skill); ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+                
+                <div style="margin: 3rem 0;"></div>
+            <?php endif; ?>
+            
+            <?php if (($isOrganizer || $isAdmin) && !empty($signedUpVolunteers)): ?>
+                <section class="details-section">
+                    <h2>Signed Up Volunteers (<?php echo count($signedUpVolunteers); ?>)</h2>
+                    <?php if ($isAdmin && !$isOrganizer): ?>
+                        <p style="color: #6c757d; font-style: italic; margin-top: 0.5rem;">
+                            (Admin view)
+                        </p>
+                    <?php endif; ?>
+                    
+                    <div style="margin-top: 1.5rem;">
+                        <?php foreach ($signedUpVolunteers as $index => $volunteer): ?>
+                            <div style="border: 1px solid #e9ecef; border-radius: 6px; padding: 1.5rem; margin-bottom: 1rem; background-color: #f8f9fa;">
+                                <h3 style="margin-top: 0; margin-bottom: 0.5rem; color: #007bff;">
+                                    <?php 
+                                    if (!empty($volunteer['first_name']) && !empty($volunteer['last_name'])) {
+                                        echo htmlspecialchars($volunteer['first_name'] . ' ' . $volunteer['last_name']);
+                                    } else {
+                                        echo htmlspecialchars($volunteer['username']);
+                                    }
+                                    ?>
+                                </h3>
+                                
+                                <?php if (!empty($volunteer['email']) || !empty($volunteer['phone'])): ?>
+                                    <div style="margin-bottom: 0.75rem;">
+                                        <?php if (!empty($volunteer['email'])): ?>
+                                            <p style="margin: 0.25rem 0;">
+                                                <strong>Email:</strong> 
+                                                <a href="mailto:<?php echo htmlspecialchars($volunteer['email']); ?>">
+                                                    <?php echo htmlspecialchars($volunteer['email']); ?>
+                                                </a>
+                                            </p>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (!empty($volunteer['phone'])): ?>
+                                            <p style="margin: 0.25rem 0;">
+                                                <strong>Phone:</strong> 
+                                                <a href="tel:<?php echo htmlspecialchars($volunteer['phone']); ?>">
+                                                    <?php echo htmlspecialchars($volunteer['phone']); ?>
+                                                </a>
+                                            </p>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                                
+                                <?php if (!empty($volunteer['skills'])): ?>
+                                    <div>
+                                        <strong>Skills:</strong>
+                                        <div style="margin-top: 0.5rem;">
+                                            <?php foreach ($volunteer['skills'] as $skill): ?>
+                                                <span class="details-tag" style="display: inline-block; background-color: #007bff; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; margin-right: 0.5rem; margin-bottom: 0.5rem; font-size: 0.875rem;">
+                                                    <?php echo htmlspecialchars($skill); ?>
+                                                </span>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <p style="margin: 0; color: #6c757d; font-style: italic;">No skills listed</p>
+                                <?php endif; ?>
+                            </div>
                         <?php endforeach; ?>
                     </div>
                 </section>
@@ -387,7 +514,7 @@ ob_start();
                         Event Full
                     </button>
                 <?php elseif (!isset($_SESSION['user_id'])): ?>
-                    <button type="button" class="btn btn-full" onclick="alert('Please log in to volunteer for this event.'); window.location.href='/pages/login.php';">
+                    <button type="button" class="btn btn-full" onclick="alert('Please log in to volunteer for this event.'); window.location.href='login.php';">
                         Volunteer for this opportunity
                     </button>
                 <?php elseif ($_SESSION['role'] !== 'volunteer'): ?>
@@ -427,7 +554,7 @@ ob_start();
             <?php endif; ?>
             
             <p class="helper">
-                <a href="/pages/timeline.php">← Back to timeline</a>
+                <a href="timeline.php">← Back to timeline</a>
             </p>
         </aside>
     </div>
@@ -452,7 +579,7 @@ ob_start();
                 const formData = new FormData();
                 formData.append('ajax_signup_event', eventId);
                 
-                fetch('/pages/timeline.php', {
+                fetch('timeline.php', {
                     method: 'POST',
                     body: formData
                 })

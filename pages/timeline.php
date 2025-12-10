@@ -13,7 +13,6 @@ if (!file_exists($locationsPath)) {
 }
 $locations = require $locationsPath;
 
-// Fetch all available skills
 try {
     $pdo = connect_to_database();
     $skills_stmt = $pdo->prepare("SELECT skill_id, skill_name FROM skills ORDER BY skill_name");
@@ -60,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_event'])) {
                 try {
                     $pdo = connect_to_database();
                     
-                    // Insert event
                     $stmt = $pdo->prepare("
                         INSERT INTO events (
                             organizer_id, 
@@ -104,7 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_event'])) {
                     
                     $event_id = $pdo->lastInsertId();
                     
-                    // Insert event skills
                     if (!empty($selected_skills)) {
                         $skill_stmt = $pdo->prepare("
                             INSERT INTO event_skills (event_id, skill_id) 
@@ -156,7 +153,6 @@ if (isset($_POST['ajax_signup_event'])) {
             if (!$event) {
                 $response['message'] = "Event not found or not active.";
             } else {
-                // Check if event has required skills
                 $event_skills_stmt = $pdo->prepare("
                     SELECT skill_id FROM event_skills WHERE event_id = :event_id
                 ");
@@ -164,14 +160,12 @@ if (isset($_POST['ajax_signup_event'])) {
                 $required_skill_ids = $event_skills_stmt->fetchAll(PDO::FETCH_COLUMN);
                 
                 if (!empty($required_skill_ids)) {
-                    // Get volunteer's skills
                     $volunteer_skills_stmt = $pdo->prepare("
                         SELECT skill_id FROM user_skills WHERE user_id = :user_id
                     ");
                     $volunteer_skills_stmt->execute(['user_id' => $volunteer_id]);
                     $volunteer_skill_ids = $volunteer_skills_stmt->fetchAll(PDO::FETCH_COLUMN);
                     
-                    // Check if volunteer has at least one required skill
                     $has_required_skill = false;
                     foreach ($required_skill_ids as $required_skill) {
                         if (in_array($required_skill, $volunteer_skill_ids)) {
@@ -324,8 +318,7 @@ try {
                 'volunteer_id' => $_SESSION['user_id']
             ]);
             $is_signed_up = (bool)$signup_check->fetch();
-            
-            // Check if volunteer has required skills
+
             if ($_SESSION['role'] === 'volunteer') {
                 $event_skills_stmt = $pdo->prepare("
                     SELECT skill_id FROM event_skills WHERE event_id = :event_id
