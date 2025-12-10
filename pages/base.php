@@ -17,7 +17,7 @@ $userRole = $_SESSION['role'] ?? null;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($pageTitle); ?></title>
 
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="../static/css/style.css">
 </head>
 
 <body>
@@ -50,7 +50,7 @@ $userRole = $_SESSION['role'] ?? null;
     <main class="page">
         <?php echo $content; ?>
     </main>
-    <script src="/static/js/main.js"></script>
+    <script src="../static/js/main.js"></script>
 
 </body>
 </html>
