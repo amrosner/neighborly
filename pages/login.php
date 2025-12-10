@@ -16,15 +16,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo = connect_to_database();
             
             // Fetch user data including ROLE
-            $stmt = $pdo->prepare("SELECT USER_ID, USERNAME, PASSWORD_HASH, ROLE FROM USERS WHERE USERNAME = :username");
+            $stmt = $pdo->prepare("SELECT user_id, username, password_hash, role FROM users WHERE username = :username");
             $stmt->execute(['username' => $username]);
             $user = $stmt->fetch();
             
-            if ($user && hash('sha256', $password) === $user['PASSWORD_HASH']) {
+            if ($user && hash('sha256', $password) === $user['password_hash']) {
                 // Set session variables
-                $_SESSION['user_id'] = $user['USER_ID'];
-                $_SESSION['username'] = $user['USERNAME'];
-                $_SESSION['role'] = $user['ROLE'];
+                $_SESSION['user_id'] = $user['user_id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role'] = $user['role'];
                 
                 // Redirect to timeline
                 header("Location: timeline.php");
