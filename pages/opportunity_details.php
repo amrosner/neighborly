@@ -104,7 +104,7 @@ if ($opportunityId <= 0) {
     }
 }
 
-$placeholderImage = "/static/img/placeholder.jpeg";
+$placeholderImage = "../static/img/placeholder.jpeg";
 
 ob_start();
 ?>
@@ -113,7 +113,7 @@ ob_start();
     <div class="error-message" style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; text-align: center;">
         <strong>Error:</strong> <?php echo htmlspecialchars($error); ?>
         <br><br>
-        <a href="/pages/timeline.php" class="btn">← Back to Timeline</a>
+        <a href="timeline.php" class="btn">← Back to Timeline</a>
     </div>
 <?php else: ?>
     <div class="details-layout">
@@ -227,7 +227,7 @@ ob_start();
             <?php endif; ?>
             
             <p class="helper">
-                <a href="/pages/timeline.php">← Back to timeline</a>
+                <a href="timeline.php">← Back to timeline</a>
             </p>
         </aside>
     </div>
@@ -252,7 +252,7 @@ ob_start();
                 const formData = new FormData();
                 formData.append('ajax_signup_event', eventId);
                 
-                fetch('/pages/timeline.php', {
+                fetch('timeline.php', {
                     method: 'POST',
                     body: formData
                 })
