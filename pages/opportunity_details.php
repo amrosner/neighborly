@@ -20,6 +20,8 @@ $questions = [];
 $isOrganizer = false;
 $isAdmin = false;
 $signedUpVolunteers = [];
+$userSkills = [];
+$hasMatchingSkill = false;
 
 if ($opportunityId <= 0) {
     $error = "Invalid event ID.";
@@ -108,6 +110,34 @@ if ($opportunityId <= 0) {
                 ");
                 $stmt->execute(['user_id' => $_SESSION['user_id']]);
                 $isAdmin = (bool)$stmt->fetch();
+                
+                if ($_SESSION['role'] === 'volunteer') {
+                    $stmt = $pdo->prepare("
+                        SELECT skill_id
+                        FROM user_skills
+                        WHERE user_id = :user_id
+                    ");
+                    $stmt->execute(['user_id' => $_SESSION['user_id']]);
+                    $userSkillIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                    
+                    foreach ($userSkillIds as $skillId) {
+                        $stmt = $pdo->prepare("
+                            SELECT skill_name
+                            FROM skills
+                            WHERE skill_id = :skill_id
+                        ");
+                        $stmt->execute(['skill_id' => $skillId]);
+                        $skill = $stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($skill) {
+                            $userSkills[] = $skill['skill_name'];
+                        }
+                    }
+                    
+                    if (!empty($skillIds) && !empty($userSkillIds)) {
+                        $matchingSkills = array_intersect($skillIds, $userSkillIds);
+                        $hasMatchingSkill = !empty($matchingSkills);
+                    }
+                }
             }
             
             if ($isOrganizer || $isAdmin) {
@@ -517,10 +547,26 @@ ob_start();
                     <button type="button" class="btn btn-full" onclick="alert('Please log in to volunteer for this event.'); window.location.href='login.php';">
                         Volunteer for this opportunity
                     </button>
-                <?php elseif ($_SESSION['role'] !== 'volunteer'): ?>
-                    <button type="button" class="btn btn-full" disabled style="cursor: not-allowed;">
+                <?php elseif ($isOrganizer): ?>
+                    <button type="button" class="btn btn-full" disabled style="background-color: #6c757d; cursor: not-allowed;">
                         Only volunteers can sign up
                     </button>
+                <?php elseif ($isAdmin): ?>
+                    <button type="button" class="btn btn-full" disabled style="background-color: #6c757d; cursor: not-allowed;">
+                        Only volunteers can sign up
+                    </button>
+                <?php elseif ($_SESSION['role'] !== 'volunteer'): ?>
+                    <button type="button" class="btn btn-full" disabled style="background-color: #6c757d; cursor: not-allowed;">
+                        Only volunteers can sign up
+                    </button>
+                <?php elseif (!$hasMatchingSkill): ?>
+                    <button type="button" class="btn btn-full" disabled style="background-color: #6c757d; cursor: not-allowed;" 
+                            title="You need at least one matching skill to volunteer for this event">
+                        No matching skills
+                    </button>
+                    <p style="color: #dc3545; font-size: 0.875rem; margin-top: 0.5rem; text-align: center;">
+                        You need at least one of the required skills to volunteer for this event.
+                    </p>
                 <?php else: ?>
                     <button type="button" 
                             class="btn btn-full details-volunteer-btn"
@@ -602,9 +648,9 @@ ob_start();
                     volunteerBtn.textContent = 'Volunteer for this opportunity';
                     volunteerBtn.style.cursor = 'pointer';
                 });
-            });
-        }
-    });
+        });
+    }
+});
     </script>
 <?php endif; ?>
 
