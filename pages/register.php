@@ -8,19 +8,16 @@ $authPage  = true;
 $error = "";
 $success = "";
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     $password_confirm = $_POST['password_confirm'] ?? '';
     $is_organization = isset($_POST['is_organization']) ? 1 : 0;
     
-    // Organization fields
     $org_name = trim($_POST['org_name'] ?? '');
     $org_email = trim($_POST['org_email'] ?? '');
     $org_phone = trim($_POST['org_phone'] ?? '');
     
-    // Validation
     if (empty($username) || empty($password)) {
         $error = "Username and password are required.";
     } elseif ($password !== $password_confirm) {
@@ -37,17 +34,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = connect_to_database();
             
-            // Check if username already exists
             $stmt = $pdo->prepare("SELECT USER_ID FROM USERS WHERE USERNAME = :username");
             $stmt->execute(['username' => $username]);
             
             if ($stmt->fetch()) {
                 $error = "Username already exists. Please choose another.";
             } else {
-                // Hash the password
                 $hashed_password = hash('sha256', $password);
                 
-                // Insert into USERS table
                 $stmt = $pdo->prepare("
                     INSERT INTO USERS (USERNAME, PASSWORD_HASH, EMAIL, PHONE, LOCATION, ROLE) 
                     VALUES (:username, :password_hash, :email, :phone, NULL, :role)
@@ -55,7 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $role = $is_organization ? 'organizer' : 'volunteer';
                 
-                // Set email and phone based on user type
                 $email = $is_organization ? $org_email : NULL;
                 $phone = $is_organization ? $org_phone : NULL;
 
@@ -67,7 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'role' => $role
                 ]);
                 
-                // Get the user_id directly from the USERS table
                 $stmt = $pdo->prepare("SELECT USER_ID FROM USERS WHERE USERNAME = :username");
                 $stmt->execute(['username' => $username]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -76,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $user_id = $result['USER_ID'];
                     
                     if ($is_organization) {
-                        // If organization, insert into ORGANIZERS table
                         $stmt = $pdo->prepare("
                             INSERT INTO ORGANIZERS (USER_ID, ORG_NAME, ORG_DESCRIPTION) 
                             VALUES (:user_id, :org_name, NULL)
@@ -87,7 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'org_name' => $org_name
                         ]);
                     } else {
-                        // If volunteer, insert into VOLUNTEERS table with NULL values
                         $stmt = $pdo->prepare("
                             INSERT INTO VOLUNTEERS (USER_ID, FIRST_NAME, LAST_NAME, BIO) 
                             VALUES (:user_id, NULL, NULL, NULL)
@@ -100,7 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     $success = "Account created successfully! Redirecting to login...";
                     
-                    // Redirect after 2 seconds
                     header("refresh:2;url=login.php");
                 } else {
                     $error = "Error retrieving user information. Please contact support.";
@@ -162,7 +151,6 @@ ob_start();
             >
         </div>
         
-        <!-- Organization checkbox -->
         <div class="form-group checkbox-row">
             <input
                 type="checkbox"
@@ -174,7 +162,6 @@ ob_start();
             <label for="is_organization">Are you an organization?</label>
         </div>
         
-        <!-- Extra fields that apply to organizations (hidden until checked) -->
         <div id="org-fields" class="org-extra" style="<?php echo isset($_POST['is_organization']) ? '' : 'display:none;'; ?>">
             <div class="form-group">
                 <label for="org_name">Organization name</label>
@@ -217,12 +204,10 @@ ob_start();
 </p>
 
 <script>
-// Show/hide organization fields based on checkbox
 document.getElementById('is_organization').addEventListener('change', function() {
     document.getElementById('org-fields').style.display = this.checked ? 'block' : 'none';
 });
 
-// Format phone number input automatically
 document.getElementById('org_phone').addEventListener('input', function(e) {
     let value = e.target.value.replace(/\D/g, '');
     
@@ -232,7 +217,6 @@ document.getElementById('org_phone').addEventListener('input', function(e) {
         value = value.replace(/(\d{3})(\d{3})(\d+)/, '$1-$2-$3');
     }
     
-    // Limit to 12 characters (3-3-4)
     if (value.length > 12) {
         value = value.substring(0, 12);
     }
