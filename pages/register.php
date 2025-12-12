@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = connect_to_database();
             
-            $stmt = $pdo->prepare("SELECT USER_ID FROM USERS WHERE USERNAME = :username");
+            $stmt = $pdo->prepare("SELECT user_id FROM users WHERE username = :username");
             $stmt->execute(['username' => $username]);
             
             if ($stmt->fetch()) {
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hashed_password = hash('sha256', $password);
                 
                 $stmt = $pdo->prepare("
-                    INSERT INTO USERS (USERNAME, PASSWORD_HASH, EMAIL, PHONE, LOCATION, ROLE) 
+                    INSERT INTO users (username, password_hash, email, phone, location, role) 
                     VALUES (:username, :password_hash, :email, :phone, NULL, :role)
                 ");
                 
@@ -60,16 +60,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'role' => $role
                 ]);
                 
-                $stmt = $pdo->prepare("SELECT USER_ID FROM USERS WHERE USERNAME = :username");
+                $stmt = $pdo->prepare("SELECT user_id FROM users WHERE username = :username");
                 $stmt->execute(['username' => $username]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 
                 if ($result) {
-                    $user_id = $result['USER_ID'];
+                    $user_id = $result['user_id'];
                     
                     if ($is_organization) {
                         $stmt = $pdo->prepare("
-                            INSERT INTO ORGANIZERS (USER_ID, ORG_NAME, ORG_DESCRIPTION) 
+                            INSERT INTO organizers (user_id, org_name, org_description) 
                             VALUES (:user_id, :org_name, NULL)
                         ");
                         
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ]);
                     } else {
                         $stmt = $pdo->prepare("
-                            INSERT INTO VOLUNTEERS (USER_ID, FIRST_NAME, LAST_NAME, BIO) 
+                            INSERT INTO volunteers (user_id, first_name, last_name, bio) 
                             VALUES (:user_id, NULL, NULL, NULL)
                         ");
                         
